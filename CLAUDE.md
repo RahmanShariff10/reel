@@ -3,11 +3,11 @@
 > Instructions for AI coding agents working in this repo. Read this before starting any slice.
 
 ## What this project is
-[One-line description]. Full context lives in `docs/PRD.md` and `docs/ARCHITECTURE.md` — read those first if you're unfamiliar with the project.
+Reel turns a full T20 cricket broadcast into a captioned highlight reel automatically: a CPU-only Python pipeline (FastAPI + worker) with a Next.js web app. Full context lives in `docs/PRD.md` and `docs/ARCHITECTURE.md` — read those first if you're unfamiliar with the project.
 
 ## How work is structured
-Work is broken into **slices** (`docs/slices/`), grouped into **sprints** (`docs/sprints/`). Each slice has:
-- A module it belongs to (see `docs/ARCHITECTURE.md`)
+Work is broken into **slices** (`docs/slices/`), grouped into **sprints** (`docs/sprints/`; overview in `docs/sprints/README.md`). Each slice has:
+- A module it belongs to (see `docs/ARCHITECTURE.md`), an owner (Dev A or Dev B), dependencies and a target week
 - Acceptance criteria written as testable statements — treat these as the test plan
 - An "out of scope" note, if present — do not build beyond it
 
@@ -15,6 +15,9 @@ Work is broken into **slices** (`docs/slices/`), grouped into **sprints** (`docs
 
 ## Commit / PR convention
 Reference the slice ID in your commit messages and PR title, e.g. `slice-03-user-auth: add login endpoint`. This keeps code traceable back to its spec.
+
+## Commit / PR attribution
+Never add `Co-Authored-By` trailers, "Generated with …" footers, or any other AI/assistant attribution to commit messages, PR titles or PR descriptions. Commits are authored solely by the human committing them.
 
 ## Human review required — do not merge/deploy without it
 - Authentication / authorization changes
