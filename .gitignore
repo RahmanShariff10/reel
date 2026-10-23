@@ -9,3 +9,15 @@ venv/
 dist/
 build/
 .DS_Store
+
+# Reel: match footage, job outputs and models never go into git
+data/
+eval/cricsheet/
+*.mp4
+*.mkv
+*.mov
+
+# Frontend
+node_modules/
+.next/
+.env.local

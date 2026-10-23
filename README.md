@@ -1,42 +1,114 @@
-# ship-kit
+# Reel
 
-A starting point for AI-assisted builds: structure the thinking (research → PRD → architecture → sprints → slices) so a coding agent can execute cleanly, instead of improvising from a single chat.
+**Automatic highlight reels from full T20 cricket broadcasts. Upload a match, wait, get the reel.**
 
-As AI coding agents handle more of the actual implementation, the human's job shifts upstream — to defining requirements and architecture precisely enough that an agent can build the right thing without guessing. `ship-kit` is a lightweight set of doc templates and a `CLAUDE.md`/`AGENTS.md` for exactly that: minimal structure, no heavy process, designed to stay out of your way until you actually need it.
+![Status](https://img.shields.io/badge/status-in%20development-orange)
+![Python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-frontend-000000?logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![ffmpeg](https://img.shields.io/badge/ffmpeg-video-007808?logo=ffmpeg&logoColor=white)
+![CPU only](https://img.shields.io/badge/runs%20on-CPU%20only-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-## Use this template
-Click **"Use this template"** above to create a new repo with this structure already in place. Rename it, then start at Phase 0 below.
+Reel takes a full T20 match video (~3.5 hours) and produces a captioned highlight reel of the wickets, sixes and fours, plus an explained list of every key event. It runs locally on a laptop CPU, with no manual editing and no cloud services.
 
-## What's inside
+> **Status:** design complete, implementation in progress. See [`docs/`](docs/) for the full specification.
+
+## How it works
+
+Cricket is played ball by ball, so Reel analyses the match one delivery at a time:
+
+1. **Find the score box.** Reel locates the on-screen score (e.g. `IND 145/3  16.2 ov`) automatically and reads it throughout the match.
+2. **Split the match into deliveries.** Camera cuts are detected, and the bowler run-up shot marks the start of each ball.
+3. **Read each ball's outcome.** Score changes give the event: +4 is a four, +6 is a six, +1 wicket is a wicket.
+4. **Measure excitement.** Crowd audio (cheering, applause) and the number of replays rate how big each moment was.
+5. **Build the reel.** The top moments are cut from run-up to outcome, captioned, and joined into a 3, 5 or 10-minute reel, or one with every wicket and boundary.
+
+Every selected clip comes with its reasons, e.g. *score +6 · crowd excitement high · 2 replays*.
+
+## Features
+
+- Upload a match video, or use a file already on disk
+- Score-box detection with no user input
+- Live processing progress
+- Highlight reel with per-clip captions and a title card
+- Event list with over, score, confidence and reasons; click an event to jump to it
+- Match summary: fours, sixes and wickets per innings
+- Re-cut the reel to a different length without re-analysing the match
+- Download the reel (MP4), the events (JSON) and individual clips
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js, TypeScript, Tailwind CSS, shadcn/ui, Recharts |
+| Backend | Python 3.11, FastAPI, Pydantic, SQLite, separate worker process |
+| Video and audio | ffmpeg, PySceneDetect, librosa |
+| Models (pretrained, CPU) | RapidOCR (PP-OCR), CLIP ViT-B/32 + a small trained classifier, PANNs CNN14 |
+| Evaluation | Cricsheet ball-by-ball data, pytest, Google Colab |
+
+## Project structure
 
 ```
-/docs
-  research.md          → problem framing, who has it, what exists
-  PRD.md                → goal, users, features, explicitly out of scope
-  ARCHITECTURE.md       → stack, system flow, modules, API contract, constraints
-  /decisions
-    ADR-001-xxx.md       → only when a choice is non-obvious (opportunistic, not mandatory)
-  /sprints
-    sprint-01.md
-  /slices
-    slice-01-xxx.md
-CLAUDE.md / AGENTS.md    → house rules for coding agents working in this repo
-.env.example
+backend/     FastAPI server, worker and processing pipeline (Python)
+frontend/    Web app (Next.js)
+eval/        Evaluation scripts, annotations and notebooks
+data/        Local videos, job outputs and models (not committed)
+docs/        Research, PRD, architecture, decisions, sprints and slices
 ```
 
-## Workflow (short version)
+## Getting started
 
-1. **Research** — talk it through with web AI, write `docs/research.md`
-2. **PRD** — lock goal/users/features/out-of-scope before moving on
-3. **Architecture** — stack, flow, modules, constraints; ADR only if genuinely non-obvious
-4. **Sprints** — break architecture into feature-level chunks (`docs/sprints/`)
-5. **Slices** — break each sprint into agent-session-sized units with testable acceptance criteria (`docs/slices/`)
-6. **Execute** — hand a slice to a coding agent, it opens a PR referencing the slice ID, human review required for auth/payments/data-deletion/infra/secrets, merge, deploy
+> Setup commands will be added as the first sprints land.
 
-A matching Notion page template mirrors this `/docs` structure for commenting and status-tracking — the repo is the canonical source, Notion is the visible/collaborative mirror.
+**Prerequisites**
+- Python 3.11 and [uv](https://docs.astral.sh/uv/)
+- Node.js 20+
+- ffmpeg on your `PATH`
 
-## Not included by default
-CI, Docker, and release pipelines are intentionally left out — add them only when a project's actual pain calls for it, by asking the coding agent to set it up. See `CLAUDE.md` / `AGENTS.md`.
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [Research](docs/research.md) | Problem, prior work, what is different here |
+| [PRD](docs/PRD.md) | Users, features, scope, success criteria |
+| [Architecture](docs/ARCHITECTURE.md) | Stack, pipeline, modules, API contract, data model |
+| [Decisions](docs/decisions/) | Records of the non-obvious design choices |
+| [Sprints](docs/sprints/) and [slices](docs/slices/) | Build plan and units of work |
+
+## Evaluation
+
+Reel is evaluated on held-out T20 matches against [Cricsheet](https://cricsheet.org) ball-by-ball data and hand-marked timestamps.
+
+| Metric | Target |
+|---|---|
+| Wickets and boundaries detected | ≥ 90% |
+| Reel clips containing the full moment | ≥ 85% |
+| Deliveries detected | ≥ 90% |
+| Processing time, full T20 on a laptop CPU | ≤ 60 min |
+
+The evaluation also reports agreement with official broadcaster highlights, a viewer study, and an ablation showing how much each signal (audio, camera shots, score reading) contributes.
+
+## Scope
+
+Supported: finished T20 match files with English commentary and an on-screen score box.
+Not supported: live streams, other formats or sports, cloud deployment, user accounts.
+
+## Data and copyright
+
+Match footage is copyrighted. Videos and job outputs stay in `data/`, which is excluded from version control, and are never uploaded anywhere. Only our timestamp annotations are committed.
+
+## Development workflow
+
+Work is planned as sprints and slices in [`docs/`](docs/), and each slice has testable acceptance criteria. Commits and pull requests reference their slice ID (e.g. `slice-03-score-locate: …`). Rules for AI coding agents are in [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
+
+## Acknowledgements
+
+- [Cricsheet](https://cricsheet.org) for open ball-by-ball cricket data
+- [PANNs](https://github.com/qiuqiangkong/audioset_tagging_cnn), [OpenCLIP](https://github.com/mlfoundations/open_clip) and [RapidOCR](https://github.com/RapidAI/RapidOCR) for pretrained models
+- Shukla et al., *Automatic Cricket Highlight Generation Using Event-Driven and Excitement-Based Features* (CVPR Workshops 2018), the closest prior work
 
 ## License
-MIT — see `LICENSE`.
+
+[MIT](LICENSE)
