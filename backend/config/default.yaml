@@ -89,6 +89,7 @@ highlights:
     max_boundary_s: 25.0
     max_wicket_s: 35.0
   moment_min_excitement: 0.6   # without a score box: excitement needed for a "moment"
+  title_card_s: 3.0            # title card length, counted in the reel length
   late_overs_from: 17.0        # overs from which the last-3-overs bonus applies
   close_chase_runs: 30         # second innings within this many runs of the target = close chase
   modes:

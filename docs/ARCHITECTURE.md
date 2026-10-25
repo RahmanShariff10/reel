@@ -150,7 +150,7 @@ Errors: `{ error: { code, message } }` with 4xx/5xx. `stage` values: `ingest`, `
 
 **Stage files (Pydantic models in `common`)**
 - `Delivery` — `id`, `innings`, `over_ball` (e.g. `"16.2"`, may be null), `start_s`, `t_hit_s`, `end_s`, `runs_delta`, `wicket` (bool), `overturned` (bool), `score_after` (e.g. `"IND 151/3"`), `replay_count`, `excitement_max`.
-- `Event` (in `events.json`, returned by `/result`) — `id`, `delivery_id`, `type` (`wicket`/`six`/`four`/`near_miss`/`moment`), `innings`, `over_ball`, `score_text`, `importance` (0–1), `confidence` (0–1), `reasons: [{ signal, value, label }]` (e.g. `{signal: "score", value: 6, label: "score +6"}`), `moment_s`, `clip: { start_s, end_s }`.
+- `Event` (in `events.json`, returned by `/result`) — `id`, `delivery_id`, `type` (`wicket`/`six`/`four`/`near_miss`/`moment`), `innings`, `over_ball`, `score_text`, `importance` (0–1), `confidence` (0–1), `reasons: [{ signal, value, label }]` (e.g. `{signal: "score", value: 6, label: "score +6"}`), `moment_s`, `clip: { start_s, end_s }`, `overturned` (wicket reversed on review; never selected).
 - `summary` — `teams?`, `innings: [{ runs, wickets, overs, fours, sixes }]`, `deliveries_found`, `processing_s`, `scorebox_found`.
 - `scorebox` — `found`, `box: [x, y, w, h]?`, `confidence`, `sample_reading?`, `preview_url?`.
 
