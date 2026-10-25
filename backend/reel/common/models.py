@@ -323,6 +323,9 @@ class Summary(BaseModel):
     deliveries_found: int = Field(default=0, ge=0, description="Total deliveries detected")
     processing_s: float = Field(default=0.0, ge=0, description="Total pipeline run time in seconds")
     scorebox_found: bool = Field(default=False, description="Whether score box was located")
+    stage_timings: dict[str, float] = Field(
+        default_factory=dict, description="Seconds spent in each stage during the last run"
+    )
 
 
 # ---------------------------------------------------------------------------

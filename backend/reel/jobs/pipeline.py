@@ -7,19 +7,32 @@ updates progress proportionally based on stage weights, and records failures.
 from __future__ import annotations
 
 import inspect
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from reel.audio.excitement import is_valid_audio, run_audio
+from reel.audio.excitement import (
+    compute_excitement,
+    is_valid_audio,
+    run_audio,
+    write_excitement_rows,
+)
 from reel.common.config import ReelConfig, load_config
 from reel.common.logging import get_logger
+from reel.common.models import Meta, ReelPlan, Summary, is_valid, read_model, write_model
 from reel.common.paths import JobPaths
 from reel.deliveries.segment import is_valid_deliveries, run_deliveries
 from reel.highlights.select import is_valid_highlights, run_highlights
 from reel.ingest import is_valid_ingest, run_ingest
 from reel.ingest.scan import is_valid_scan, run_scan
-from reel.jobs.store import fail_job, finish_job, update_progress
+from reel.jobs.store import (
+    create_reel_request,
+    fail_job,
+    finish_job,
+    finish_reel,
+    update_progress,
+)
 from reel.render.reel import is_valid_render, run_render
 from reel.scoreboard import is_valid_locate_scorebox, run_locate_scorebox
 from reel.scoreboard.score_stage import is_valid_read_score, run_read_score
@@ -54,6 +67,8 @@ class Stage:
     weight: float
     validator: StageValidator
     runner: StageRunner
+    signal: str | None = None  # config.signals.<name> that can switch this stage off
+    neutral: Callable[[PipelineContext], None] | None = None  # outputs when switched off
 
     def is_valid(self, ctx: PipelineContext) -> bool:
         """Check whether the stage's outputs already exist and are valid."""
@@ -72,27 +87,71 @@ class Stage:
             self.runner(ctx)  # type: ignore[call-arg]
 
 
+def _neutral_read_score(ctx: PipelineContext) -> None:
+    """Score signal off: empty readings, timeline and events."""
+    for path in (
+        ctx.paths.score_readings_json,
+        ctx.paths.score_timeline_json,
+        ctx.paths.score_events_json,
+    ):
+        write_model(path, [])
+
+
+def _neutral_audio(ctx: PipelineContext) -> None:
+    """Audio signal off: zero excitement for every second."""
+    meta = read_model(ctx.paths.meta_json, Meta)
+    write_excitement_rows(
+        ctx.paths.excitement_csv, compute_excitement(None, meta.duration_s, ctx.config.audio)
+    )
+
+
+# Weights roughly follow expected CPU time on a full match.
 DEFAULT_STAGES: list[Stage] = [
-    Stage(name="ingest", weight=5.0, validator=is_valid_ingest, runner=run_ingest),
+    Stage("ingest", 4.0, is_valid_ingest, run_ingest),
+    Stage("locate_scorebox", 4.0, is_valid_locate_scorebox, run_locate_scorebox),
+    Stage("scan", 35.0, is_valid_scan, run_scan),
     Stage(
-        name="locate_scorebox",
-        weight=10.0,
-        validator=is_valid_locate_scorebox,
-        runner=run_locate_scorebox,
+        "read_score",
+        10.0,
+        is_valid_read_score,
+        run_read_score,
+        signal="score",
+        neutral=_neutral_read_score,
     ),
-    Stage(name="scan", weight=25.0, validator=is_valid_scan, runner=run_scan),
-    Stage(name="read_score", weight=15.0, validator=is_valid_read_score, runner=run_read_score),
-    Stage(
-        name="classify_shots",
-        weight=10.0,
-        validator=is_valid_classify_shots,
-        runner=run_classify_shots,
-    ),
-    Stage(name="audio", weight=10.0, validator=is_valid_audio, runner=run_audio),
-    Stage(name="deliveries", weight=10.0, validator=is_valid_deliveries, runner=run_deliveries),
-    Stage(name="highlights", weight=5.0, validator=is_valid_highlights, runner=run_highlights),
-    Stage(name="render", weight=10.0, validator=is_valid_render, runner=run_render),
+    Stage("classify_shots", 8.0, is_valid_classify_shots, run_classify_shots),
+    Stage("audio", 25.0, is_valid_audio, run_audio, signal="audio", neutral=_neutral_audio),
+    Stage("deliveries", 1.0, is_valid_deliveries, run_deliveries),
+    Stage("highlights", 1.0, is_valid_highlights, run_highlights),
+    Stage("render", 12.0, is_valid_render, run_render),
 ]
+
+
+def _finalise(ctx: PipelineContext, timings: dict[str, float]) -> None:
+    """Add processing times to summary.json and record the default 5min reel."""
+    paths = ctx.paths
+    if is_valid(paths.summary_json, Summary):
+        summary = read_model(paths.summary_json, Summary)
+        write_model(
+            paths.summary_json,
+            summary.model_copy(
+                update={
+                    "processing_s": round(sum(timings.values()), 2),
+                    "stage_timings": {k: round(v, 2) for k, v in timings.items()},
+                }
+            ),
+        )
+    plan_path, reel = paths.reel_plan_path("5min"), paths.reel_path("5min")
+    if reel.is_file() and is_valid(plan_path, ReelPlan):
+        plan = read_model(plan_path, ReelPlan)
+        create_reel_request(ctx.db_path, ctx.job_id, "5min")
+        finish_reel(
+            ctx.db_path,
+            ctx.job_id,
+            "5min",
+            path=str(reel),
+            duration_s=plan.duration_s,
+            event_ids=[c.event_id for c in plan.clips],
+        )
 
 
 def run_pipeline(
@@ -122,11 +181,22 @@ def run_pipeline(
 
     log.info("Starting pipeline for job %s with %d stages", ctx.job_id, len(pipeline_stages))
     cumulative_weight = 0.0
+    timings: dict[str, float] = {}
 
     for stage in pipeline_stages:
         stage_weight = stage.weight
         stage_start_pct = (cumulative_weight / total_weight) * 100.0
         stage_end_pct = ((cumulative_weight + stage_weight) / total_weight) * 100.0
+
+        if stage.signal and not getattr(ctx.config.signals, stage.signal):
+            log.info(
+                "Signal '%s' is off; stage '%s' writes neutral outputs", stage.signal, stage.name
+            )
+            if stage.neutral:
+                stage.neutral(ctx)
+            update_progress(ctx.db_path, ctx.job_id, stage.name, stage_end_pct)
+            cumulative_weight += stage_weight
+            continue
 
         if stage.is_valid(ctx):
             log.info("Stage '%s' output is valid; skipping execution", stage.name)
@@ -147,6 +217,7 @@ def run_pipeline(
 
         cb = make_progress_cb(stage_start_pct, stage_end_pct)
 
+        started = time.monotonic()
         try:
             stage.run(ctx, cb)
         except Exception as exc:
@@ -155,8 +226,10 @@ def run_pipeline(
             fail_job(ctx.db_path, ctx.job_id, msg)
             raise
 
+        timings[stage.name] = time.monotonic() - started
         update_progress(ctx.db_path, ctx.job_id, stage.name, stage_end_pct)
         cumulative_weight += stage_weight
 
+    _finalise(ctx, timings)
     finish_job(ctx.db_path, ctx.job_id)
     log.info("Pipeline completed successfully for job %s", ctx.job_id)

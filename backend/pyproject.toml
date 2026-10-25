@@ -18,6 +18,9 @@ dependencies = [
     "scikit-learn>=1.4,<2",
 ]
 
+[project.scripts]
+reel = "reel.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0,<9",
