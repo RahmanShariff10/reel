@@ -20,6 +20,9 @@ scoreboard:
   box_padding_frac: 0.08       # padding around the detected box, as a fraction of its height
   crop_pixel_delta: 40         # a pixel counts as changed if it differs by more than this
   crop_change_frac: 0.002      # crop counts as changed if more than this fraction of pixels changed
+  max_run_jump: 13             # a larger run increase in one change is treated as an OCR error
+  drs_window_s: 120.0          # a wicket reverting within this window is a DRS reversal
+  new_innings_max_runs: 12     # runs at most this after the reset count as a new innings
 
 scan:
   low_res_fps: 4               # fps for camera-cut detection
