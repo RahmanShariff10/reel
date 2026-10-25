@@ -41,13 +41,9 @@ def prepare(video: Path, tmp: Path) -> PipelineContext:
     return ctx
 
 
-@pytest.fixture(scope="module")
-def scanned(synthetic_match: SyntheticMatch, tmp_path_factory) -> PipelineContext:
-    ctx = prepare(synthetic_match.video, tmp_path_factory.mktemp("scan"))
-    calls: list[float] = []
-    run_scan(ctx, calls.append)
-    ctx.progress_calls = calls  # type: ignore[attr-defined]
-    return ctx
+@pytest.fixture
+def scanned(scanned_match: PipelineContext) -> PipelineContext:
+    return scanned_match
 
 
 def hex_to_bgr(h: str) -> np.ndarray:

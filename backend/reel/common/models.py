@@ -125,6 +125,7 @@ class ScoreReading(BaseModel):
 
     time_s: float = Field(..., ge=0, description="Video timestamp in seconds")
     raw_text: str = Field(default="", description="Raw OCR recognised text")
+    team: str | None = Field(default=None, description="Team abbreviation shown, e.g. 'IND'")
     runs: int | None = Field(default=None, ge=0, description="Parsed runs total")
     wickets: int | None = Field(default=None, ge=0, le=10, description="Parsed wickets lost")
     overs: float | None = Field(default=None, ge=0, description="Parsed overs bowled")

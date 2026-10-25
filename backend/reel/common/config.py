@@ -35,6 +35,8 @@ class ScoreboardConfig(BaseModel):
     short_video_min: float = Field(15.0, ge=0)
     short_skip_frac: float = Field(0.05, ge=0, lt=0.5)
     box_padding_frac: float = Field(0.08, ge=0)
+    crop_pixel_delta: int = Field(40, gt=0)
+    crop_change_frac: float = Field(0.002, ge=0)
 
 
 class ScanConfig(BaseModel):

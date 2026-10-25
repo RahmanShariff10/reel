@@ -52,3 +52,38 @@ def find_overs(text: str) -> float | None:
     if not m:
         return None
     return float(f"{int(m.group(1))}.{m.group(2)}")
+
+
+_TEAM_RE = re.compile(r"\b([A-Z]{2,5})\b")
+
+
+@dataclass(frozen=True)
+class ParsedScore:
+    """A score-box reading; fields are None when not present in the text."""
+
+    team: str | None
+    runs: int | None
+    wickets: int | None
+    overs: float | None
+
+
+def parse_score(text: str, order: str | None = "runs-wickets") -> ParsedScore | None:
+    """Parse runs, wickets, overs and team from score-box text.
+
+    ``order`` says which number of the pair comes first on screen. Returns None when
+    neither a plausible score pair nor overs are present.
+    """
+    clean = normalize(text)
+    pair, overs = find_pair(clean), find_overs(clean)
+    runs = wickets = None
+    if pair is not None:
+        runs, wickets = (
+            (pair.second, pair.first) if order == "wickets-runs" else (pair.first, pair.second)
+        )
+        if wickets > 10:
+            runs = wickets = None
+    if runs is None and overs is None:
+        return None
+    team_match = _TEAM_RE.search(_PAIR_RE.sub(" ", clean).replace("OVERS", " "))
+    team = team_match.group(1) if team_match and team_match.group(1) != "OV" else None
+    return ParsedScore(team=team, runs=runs, wickets=wickets, overs=overs)
