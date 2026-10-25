@@ -88,6 +88,9 @@ highlights:
     gap_before_next_s: 0.5
     max_boundary_s: 25.0
     max_wicket_s: 35.0
+  moment_min_excitement: 0.6   # without a score box: excitement needed for a "moment"
+  late_overs_from: 17.0        # overs from which the last-3-overs bonus applies
+  close_chase_runs: 30         # second innings within this many runs of the target = close chase
   modes:
     - "3min"
     - "5min"
