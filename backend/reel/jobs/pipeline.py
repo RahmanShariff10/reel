@@ -14,12 +14,12 @@ from pathlib import Path
 from reel.common.config import ReelConfig, load_config
 from reel.common.logging import get_logger
 from reel.common.paths import JobPaths
+from reel.ingest import is_valid_ingest, run_ingest
 from reel.jobs.placeholders import (
     is_valid_audio,
     is_valid_classify_shots,
     is_valid_deliveries,
     is_valid_highlights,
-    is_valid_ingest,
     is_valid_locate_scorebox,
     is_valid_read_score,
     is_valid_render,
@@ -28,7 +28,6 @@ from reel.jobs.placeholders import (
     run_classify_shots,
     run_deliveries,
     run_highlights,
-    run_ingest,
     run_locate_scorebox,
     run_read_score,
     run_render,

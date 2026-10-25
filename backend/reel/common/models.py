@@ -35,6 +35,7 @@ class Meta(BaseModel):
     audio_codec: str | None = Field(default=None, description="Audio codec name")
     audio_sample_rate: int | None = Field(default=None, gt=0, description="Audio sample rate (Hz)")
     audio_channels: int | None = Field(default=None, gt=0, description="Number of audio channels")
+    has_audio: bool = Field(default=True, description="Whether an audio stream is present")
     size_bytes: int | None = Field(default=None, ge=0, description="File size in bytes")
 
 

@@ -37,6 +37,7 @@ from reel.jobs.store import (
     update_progress,
 )
 from reel.jobs.worker import Worker, main
+from tests.fixtures.make_synthetic import generate_synthetic_video
 
 
 @pytest.fixture
@@ -85,8 +86,7 @@ class TestWorkerOnce:
     def test_worker_once_completes_job_and_all_placeholder_stages(
         self, db_path: Path, data_dir: Path
     ):
-        input_vid = data_dir / "sample.mp4"
-        input_vid.write_bytes(b"dummy_video_bytes")
+        input_vid, _ = generate_synthetic_video(data_dir, duration_s=2.0)
 
         job = create_job(
             db_path,
@@ -123,7 +123,8 @@ class TestWorkerOnce:
         assert paths.summary_json.is_file()
 
     def test_cli_worker_main_once(self, db_path: Path, data_dir: Path):
-        job = create_job(db_path, input_path="input.mp4")
+        input_vid, _ = generate_synthetic_video(data_dir, duration_s=2.0)
+        job = create_job(db_path, input_path=str(input_vid))
         ret = main(["--once", "--db-path", str(db_path), "--data-dir", str(data_dir)])
         assert ret == 0
 
@@ -202,7 +203,8 @@ class TestStageFailure:
     def test_stage_raises_marks_job_failed_and_aborts_later_stages(
         self, db_path: Path, data_dir: Path
     ):
-        job = create_job(db_path, input_path="test.mp4")
+        input_vid, _ = generate_synthetic_video(data_dir, duration_s=2.0)
+        job = create_job(db_path, input_path=str(input_vid))
         paths = JobPaths(job.id, data_dir=data_dir)
         paths.ensure_job_dir()
 
@@ -248,7 +250,7 @@ class TestStageFailure:
             job_id=job.id,
             db_path=db_path,
             paths=paths,
-            input_path=Path("test.mp4"),
+            input_path=input_vid,
         )
         claim_next_job(db_path)
 
