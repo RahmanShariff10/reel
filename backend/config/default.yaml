@@ -18,6 +18,8 @@ scoreboard:
   short_video_min: 15.0        # videos shorter than this (minutes) skip a fraction instead
   short_skip_frac: 0.05        # fraction skipped at each end of short videos
   box_padding_frac: 0.08       # padding around the detected box, as a fraction of its height
+  crop_pixel_delta: 40         # a pixel counts as changed if it differs by more than this
+  crop_change_frac: 0.002      # crop counts as changed if more than this fraction of pixels changed
 
 scan:
   low_res_fps: 4               # fps for camera-cut detection
