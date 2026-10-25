@@ -270,6 +270,7 @@ class Event(BaseModel):
     reasons: list[Reason] = Field(default_factory=list, description="List of reasons for rating")
     moment_s: float = Field(..., ge=0, description="Timestamp of the key moment in seconds")
     clip: ClipBoundary = Field(..., description="Computed clip boundaries")
+    overturned: bool = Field(default=False, description="Wicket overturned on review")
 
 
 class ReelClip(BaseModel):

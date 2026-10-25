@@ -125,6 +125,9 @@ class HighlightsConfig(BaseModel):
     base_importance: BaseImportanceConfig = BaseImportanceConfig()
     bonus: BonusConfig = BonusConfig()
     clip: ClipConfig = ClipConfig()
+    moment_min_excitement: float = Field(0.6, ge=0, le=1)
+    late_overs_from: float = Field(17.0, ge=0)
+    close_chase_runs: int = Field(30, ge=0)
     modes: list[str] = ["3min", "5min", "10min", "all"]
     length_tolerance_s: float = Field(15.0, ge=0)
 
