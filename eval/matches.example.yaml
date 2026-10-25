@@ -1,0 +1,7 @@
+# Copy to eval/matches.yaml and list every evaluated match.
+# job_id: the Reel job that processed the match (see `uv run reel run ...` output).
+matches:
+  - match_id: dev-match-1
+    job_id: job-xxxxxxxxxxxx
+    cricsheet: eval/cricsheet/0000000.json
+    annotations: eval/annotations/dev-match-1.csv
