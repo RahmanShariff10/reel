@@ -11,17 +11,16 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from reel.audio.excitement import is_valid_audio, run_audio
 from reel.common.config import ReelConfig, load_config
 from reel.common.logging import get_logger
 from reel.common.paths import JobPaths
 from reel.ingest import is_valid_ingest, run_ingest
 from reel.ingest.scan import is_valid_scan, run_scan
 from reel.jobs.placeholders import (
-    is_valid_audio,
     is_valid_deliveries,
     is_valid_highlights,
     is_valid_render,
-    run_audio,
     run_deliveries,
     run_highlights,
     run_render,

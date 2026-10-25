@@ -81,6 +81,13 @@ class ShotsConfig(BaseModel):
 class AudioConfig(BaseModel):
     excitement_window_s: float = Field(300.0, gt=0)
     panns_model: str = "Cnn14"
+    use_panns: bool = True
+    panns_hop_s: int = Field(1, ge=1, le=2)
+    weight_loudness: float = Field(0.5, ge=0)
+    weight_crowd: float = Field(0.5, ge=0)
+    loudness_z_full: float = Field(3.0, gt=0)
+    crowd_prob_full: float = Field(0.6, gt=0)
+    mad_floor_db: float = Field(1.0, gt=0)
 
 
 class DeliveriesConfig(BaseModel):
