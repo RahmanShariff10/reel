@@ -1,0 +1,39 @@
+{
+  "meta": {"data_version": "1.1.0", "created": "2026-10-25", "revision": 1},
+  "info": {"match_type": "T20", "teams": ["India", "Australia"], "dates": ["2026-01-01"]},
+  "innings": [
+    {
+      "team": "India",
+      "overs": [
+        {"over": 0, "deliveries": [
+          {"batter": "A", "bowler": "X", "non_striker": "B", "runs": {"batter": 4, "extras": 0, "total": 4}},
+          {"batter": "A", "bowler": "X", "non_striker": "B", "extras": {"wides": 1}, "runs": {"batter": 0, "extras": 1, "total": 1}},
+          {"batter": "A", "bowler": "X", "non_striker": "B", "runs": {"batter": 0, "extras": 0, "total": 0}},
+          {"batter": "A", "bowler": "X", "non_striker": "B", "runs": {"batter": 6, "extras": 0, "total": 6}},
+          {"batter": "A", "bowler": "X", "non_striker": "B", "runs": {"batter": 0, "extras": 0, "total": 0},
+           "wickets": [{"player_out": "A", "kind": "caught", "fielders": [{"name": "Y"}]}]},
+          {"batter": "C", "bowler": "X", "non_striker": "B", "extras": {"legbyes": 4}, "runs": {"batter": 0, "extras": 4, "total": 4}},
+          {"batter": "C", "bowler": "X", "non_striker": "B", "runs": {"batter": 1, "extras": 0, "total": 1}}
+        ]},
+        {"over": 1, "deliveries": [
+          {"batter": "B", "bowler": "Z", "non_striker": "C", "runs": {"batter": 6, "extras": 0, "total": 6}},
+          {"batter": "B", "bowler": "Z", "non_striker": "C", "runs": {"batter": 0, "extras": 0, "total": 0},
+           "wickets": [{"player_out": "B", "kind": "retired hurt"}]},
+          {"batter": "D", "bowler": "Z", "non_striker": "C", "extras": {"noballs": 1}, "runs": {"batter": 4, "extras": 1, "total": 5}},
+          {"batter": "D", "bowler": "Z", "non_striker": "C", "runs": {"batter": 0, "extras": 0, "total": 0}}
+        ]}
+      ]
+    },
+    {
+      "team": "Australia",
+      "overs": [
+        {"over": 0, "deliveries": [
+          {"batter": "P", "bowler": "A", "non_striker": "Q", "runs": {"batter": 0, "extras": 0, "total": 0},
+           "wickets": [{"player_out": "P", "kind": "bowled"}]},
+          {"batter": "R", "bowler": "A", "non_striker": "Q", "runs": {"batter": 4, "extras": 0, "total": 4}},
+          {"batter": "R", "bowler": "A", "non_striker": "Q", "runs": {"batter": 6, "extras": 0, "total": 6}}
+        ]}
+      ]
+    }
+  ]
+}
