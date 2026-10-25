@@ -162,6 +162,7 @@ class ScoreEvent(BaseModel):
     wickets: int | None = Field(default=None, ge=0, le=10, description="Total wickets after event")
     overs: float | None = Field(default=None, ge=0.0, description="Overs after event")
     innings: int = Field(default=1, ge=1, le=2, description="Innings number")
+    overturned: bool = Field(default=False, description="Wicket later overturned on review")
 
 
 # ---------------------------------------------------------------------------

@@ -37,6 +37,9 @@ class ScoreboardConfig(BaseModel):
     box_padding_frac: float = Field(0.08, ge=0)
     crop_pixel_delta: int = Field(40, gt=0)
     crop_change_frac: float = Field(0.002, ge=0)
+    max_run_jump: int = Field(13, gt=0)
+    drs_window_s: float = Field(120.0, gt=0)
+    new_innings_max_runs: int = Field(12, ge=0)
 
 
 class ScanConfig(BaseModel):
