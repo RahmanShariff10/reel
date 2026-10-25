@@ -64,6 +64,15 @@ class Scorebox(BaseModel):
         default=None,
         description="Sample score reading text extracted from candidate frames",
     )
+    sample_time_s: float | None = Field(
+        default=None,
+        ge=0,
+        description="Video time (seconds) of the frame the sample reading came from",
+    )
+    order: Literal["runs-wickets", "wickets-runs"] | None = Field(
+        default=None,
+        description="Order of the two score numbers on screen",
+    )
     preview_url: str | None = Field(
         default=None,
         description="Relative URL to the score box preview image",

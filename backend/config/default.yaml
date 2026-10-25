@@ -15,6 +15,9 @@ scoreboard:
   min_valid_ratio: 0.4         # fraction of sampled frames with valid score text
   plausibility_ratio: 0.9      # fraction of consecutive pairs that must be plausible
   consecutive_confirm: 2       # number of consecutive changed crops to accept a reading
+  short_video_min: 15.0        # videos shorter than this (minutes) skip a fraction instead
+  short_skip_frac: 0.05        # fraction skipped at each end of short videos
+  box_padding_frac: 0.08       # padding around the detected box, as a fraction of its height
 
 scan:
   low_res_fps: 4               # fps for camera-cut detection

@@ -32,6 +32,9 @@ class ScoreboardConfig(BaseModel):
     min_valid_ratio: float = Field(0.4, gt=0, le=1)
     plausibility_ratio: float = Field(0.9, gt=0, le=1)
     consecutive_confirm: int = Field(2, gt=0)
+    short_video_min: float = Field(15.0, ge=0)
+    short_skip_frac: float = Field(0.05, ge=0, lt=0.5)
+    box_padding_frac: float = Field(0.08, ge=0)
 
 
 class ScanConfig(BaseModel):

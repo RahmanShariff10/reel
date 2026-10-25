@@ -22,8 +22,9 @@ from pathlib import Path
 
 import pytest
 
-from reel.common.models import Meta, write_model
+from reel.common.models import write_model
 from reel.common.paths import JobPaths
+from reel.ingest.probe import probe_video
 from reel.jobs.pipeline import DEFAULT_STAGES, PipelineContext, Stage, run_pipeline
 from reel.jobs.store import (
     claim_next_job,
@@ -146,8 +147,8 @@ class TestStageSkipping:
         paths.ensure_job_dir()
 
         # Pre-create valid meta.json so ingest is already valid
-        meta = Meta(duration_s=50.0, width=1280, height=720, fps=25.0)
-        write_model(paths.meta_json, meta)
+        input_vid, _ = generate_synthetic_video(data_dir / "input", duration_s=2.0)
+        write_model(paths.meta_json, probe_video(input_vid))
         paths.audio_wav.write_bytes(b"EXISTING_WAV")
 
         invoked_stages = []
@@ -177,7 +178,7 @@ class TestStageSkipping:
             job_id=job.id,
             db_path=db_path,
             paths=paths,
-            input_path=Path("test.mp4"),
+            input_path=input_vid,
         )
         claim_next_job(db_path)
         run_pipeline(ctx, stages=custom_stages)
@@ -307,7 +308,8 @@ class TestConcurrentClaiming:
 
 class TestStaleJobRequeue:
     def test_running_job_is_requeued_on_worker_startup(self, db_path: Path, data_dir: Path):
-        job = create_job(db_path, input_path="stale.mp4")
+        input_vid, _ = generate_synthetic_video(data_dir / "input", duration_s=2.0)
+        job = create_job(db_path, input_path=str(input_vid))
 
         # Simulate job claimed and running
         claimed = claim_next_job(db_path)
@@ -317,8 +319,7 @@ class TestStaleJobRequeue:
         # Pre-fill ingest and locate_scorebox so they will be skipped upon resumption
         paths = JobPaths(job.id, data_dir=data_dir)
         paths.ensure_job_dir()
-        meta = Meta(duration_s=100.0, width=1280, height=720, fps=25.0)
-        write_model(paths.meta_json, meta)
+        write_model(paths.meta_json, probe_video(input_vid))
         paths.audio_wav.write_bytes(b"AUDIO")
 
         # Worker starts up: requeue_stale_jobs resets running jobs to queued
