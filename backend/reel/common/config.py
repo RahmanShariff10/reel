@@ -138,6 +138,10 @@ class RenderConfig(BaseModel):
     codec: str = "libx264"
     audio_codec: str = "aac"
     fade_duration_s: float = Field(0.3, ge=0)
+    preset: str = "veryfast"
+    crf: int = Field(23, ge=0, le=51)
+    audio_bitrate: str = "128k"
+    audio_rate: int = Field(48000, gt=0)
     caption_font_size: int = Field(36, gt=0)
 
     @field_validator("output_resolution")
