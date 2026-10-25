@@ -75,6 +75,7 @@ class ShotsConfig(BaseModel):
     clip_model: str = "ViT-B-32-quickgelu"
     clip_pretrained: str = "openai"
     batch_size: int = Field(32, gt=0)
+    classifier_file: str = "shot_classifier.joblib"
     prompts: dict[str, list[str]] = Field(default_factory=lambda: dict(DEFAULT_SHOT_PROMPTS))
 
 

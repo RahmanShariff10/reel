@@ -35,6 +35,7 @@ shots:
   clip_model: "ViT-B-32-quickgelu"   # OpenAI CLIP weights use QuickGELU
   clip_pretrained: "openai"
   batch_size: 32
+  classifier_file: "shot_classifier.joblib"   # in models_dir; used instead of zero-shot if present
   prompts:                     # zero-shot text prompts per shot class
     run_up:
       - "a cricket broadcast view from behind the bowler showing the pitch and the batsman"

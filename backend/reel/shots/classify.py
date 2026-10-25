@@ -109,6 +109,19 @@ def zero_shot(
     return labels, [{c: round(float(p), 4) for c, p in zip(classes, row)} for row in probs]
 
 
+def classify_with_model(
+    embeddings: np.ndarray, model_file: Path
+) -> tuple[list[str], list[dict[str, float]]]:
+    """Label embeddings with the trained classifier (see ``reel.shots.train``)."""
+    import joblib
+
+    model = joblib.load(model_file)
+    probs = model.predict_proba(embeddings)
+    classes = [str(c) for c in model.classes_]
+    labels = [classes[i] for i in probs.argmax(axis=1)]
+    return labels, [{c: round(float(p), 4) for c, p in zip(classes, row)} for row in probs]
+
+
 def load_or_embed(shots: list[Shot], root: Path, cache: Path, embedder_factory) -> np.ndarray:
     """Embeddings for every shot keyframe, reusing ``cache`` when it matches the shots."""
     if cache.is_file():
@@ -145,12 +158,19 @@ def run_classify_shots(
     embeddings = load_or_embed(shots, paths.root, paths.shot_embeddings_npy, factory)
     if progress_cb:
         progress_cb(0.8)
-    labels, probs = zero_shot(embeddings, cfg.prompts, factory()) if shots else ([], [])
+    model_file = Path(ctx.config.models_dir) / cfg.classifier_file
+    source = "classifier" if model_file.is_file() else "zero_shot"
+    if not shots:
+        labels, probs = [], []
+    elif source == "classifier":
+        labels, probs = classify_with_model(embeddings, model_file)
+    else:
+        labels, probs = zero_shot(embeddings, cfg.prompts, factory())
     labelled = [
-        s.model_copy(update={"label": lab, "probabilities": p, "label_source": "zero_shot"})
+        s.model_copy(update={"label": lab, "probabilities": p, "label_source": source})
         for s, lab, p in zip(shots, labels, probs)
     ]
     write_model(paths.shots_json, labelled)
-    log.info("Labelled %d shots (zero-shot)", len(labelled))
+    log.info("Labelled %d shots (%s)", len(labelled), source)
     if progress_cb:
         progress_cb(1.0)
