@@ -19,11 +19,8 @@ from reel.deliveries.segment import is_valid_deliveries, run_deliveries
 from reel.highlights.select import is_valid_highlights, run_highlights
 from reel.ingest import is_valid_ingest, run_ingest
 from reel.ingest.scan import is_valid_scan, run_scan
-from reel.jobs.placeholders import (
-    is_valid_render,
-    run_render,
-)
 from reel.jobs.store import fail_job, finish_job, update_progress
+from reel.render.reel import is_valid_render, run_render
 from reel.scoreboard import is_valid_locate_scorebox, run_locate_scorebox
 from reel.scoreboard.score_stage import is_valid_read_score, run_read_score
 from reel.shots.classify import is_valid_classify_shots, run_classify_shots

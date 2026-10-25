@@ -50,6 +50,8 @@ def encode_args(cfg: RenderConfig, fps: float) -> list[str]:
         str(cfg.audio_rate),
         "-ac",
         "2",
+        "-video_track_timescale",
+        "12800",
     ]
 
 
