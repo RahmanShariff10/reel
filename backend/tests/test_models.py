@@ -317,6 +317,7 @@ class TestEventSerializationShape:
             "reasons",
             "moment_s",
             "clip",
+            "overturned",
         }
         assert set(data.keys()) == expected_keys
         assert data["type"] == event_type
