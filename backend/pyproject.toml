@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2.7,<3",
     "pydantic-settings>=2.3,<3",
     "pyyaml>=6.0,<7",
+    "rapidocr-onnxruntime>=1.4,<2",
 ]
 
 [project.optional-dependencies]
