@@ -5,6 +5,7 @@ description = "Automatic highlight reels from full T20 cricket broadcasts"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "open-clip-torch>=2.24,<4",
     "pydantic>=2.7,<3",
     "pydantic-settings>=2.3,<3",
     "pyyaml>=6.0,<7",

@@ -111,6 +111,10 @@ class Shot(BaseModel):
         default=None,
         description="Per-class predicted probability distribution",
     )
+    label_source: Literal["zero_shot", "classifier"] | None = Field(
+        default=None,
+        description="How the label was produced",
+    )
 
 
 # ---------------------------------------------------------------------------

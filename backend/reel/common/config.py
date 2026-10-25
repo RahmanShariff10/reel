@@ -50,9 +50,32 @@ class ScanConfig(BaseModel):
     min_shot_s: float = Field(0.5, ge=0)
 
 
+DEFAULT_SHOT_PROMPTS: dict[str, list[str]] = {
+    "run_up": [
+        "a cricket broadcast view from behind the bowler showing the pitch and the batsman",
+        "a bowler running in to bowl, wide television view down the cricket pitch",
+    ],
+    "close_up": [
+        "a close-up of a cricket player's face",
+        "a close-up television shot of a cricketer celebrating",
+    ],
+    "crowd": ["a crowd of spectators in a cricket stadium", "fans cheering in the stands"],
+    "field": [
+        "a wide view of cricket fielders on a green outfield",
+        "a fielder chasing a cricket ball towards the boundary rope",
+    ],
+    "graphic": [
+        "a television graphic with text and statistics",
+        "a full-screen scoreboard graphic on TV",
+    ],
+}
+
+
 class ShotsConfig(BaseModel):
-    clip_model: str = "ViT-B-32"
+    clip_model: str = "ViT-B-32-quickgelu"
     clip_pretrained: str = "openai"
+    batch_size: int = Field(32, gt=0)
+    prompts: dict[str, list[str]] = Field(default_factory=lambda: dict(DEFAULT_SHOT_PROMPTS))
 
 
 class AudioConfig(BaseModel):
