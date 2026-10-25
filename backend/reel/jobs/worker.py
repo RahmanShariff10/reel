@@ -20,7 +20,7 @@ from reel.common.config import load_config
 from reel.common.logging import get_logger, setup_logging
 from reel.common.paths import JobPaths
 from reel.jobs.pipeline import PipelineContext, run_pipeline
-from reel.jobs.placeholders import DUMMY_MP4_BYTES
+from reel.jobs.recut import recut
 from reel.jobs.store import (
     claim_next_job,
     claim_next_reel,
@@ -46,9 +46,7 @@ class Worker:
     ) -> None:
         cfg = load_config()
         self.data_dir = Path(data_dir) if data_dir is not None else Path(cfg.data_dir)
-        self.db_path = (
-            Path(db_path) if db_path is not None else get_default_db_path(self.data_dir)
-        )
+        self.db_path = Path(db_path) if db_path is not None else get_default_db_path(self.data_dir)
         self.poll_interval_s = float(poll_interval_s)
         self._running = False
 
@@ -101,18 +99,26 @@ class Worker:
             fail_reel(self.db_path, reel.job_id, reel.mode, msg)
             return True
 
-        paths = JobPaths(reel.job_id, data_dir=self.data_dir)
-        reel_file = paths.reel_path(reel.mode)
-        reel_file.parent.mkdir(parents=True, exist_ok=True)
-        reel_file.write_bytes(DUMMY_MP4_BYTES)
+        ctx = PipelineContext(
+            job_id=reel.job_id,
+            db_path=self.db_path,
+            paths=JobPaths(reel.job_id, data_dir=self.data_dir),
+            input_path=Path(parent_job.input_path),
+        )
+        try:
+            plan, out = recut(ctx, reel.mode, reel.exclude_event_ids)
+        except Exception as exc:
+            log.error("Re-cut %s failed for job %s: %s", reel.mode, reel.job_id, exc)
+            fail_reel(self.db_path, reel.job_id, reel.mode, f"Re-cut failed: {exc}")
+            return True
 
         finish_reel(
             self.db_path,
             job_id=reel.job_id,
             mode=reel.mode,
-            path=str(reel_file),
-            duration_s=14.0,
-            event_ids=["ev-01"],
+            path=str(out),
+            duration_s=plan.duration_s,
+            event_ids=[c.event_id for c in plan.clips],
         )
         log.info("Finished reel %s for job %s", reel.mode, reel.job_id)
         return True

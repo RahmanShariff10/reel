@@ -309,6 +309,20 @@ def update_progress(
         conn.close()
 
 
+def start_job(db_path: Path | str, job_id: str) -> None:
+    """Mark a specific job as running (used when running a job outside the worker)."""
+    init_db(db_path)
+    conn = get_db_connection(db_path)
+    try:
+        with conn:
+            conn.execute(
+                "UPDATE jobs SET status = 'running', started_at = ? WHERE id = ?;",
+                (_utc_now_iso(), job_id),
+            )
+    finally:
+        conn.close()
+
+
 def finish_job(db_path: Path | str, job_id: str) -> None:
     """Mark a job as successfully finished with 100% progress."""
     init_db(db_path)
