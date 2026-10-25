@@ -11,26 +11,23 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from reel.audio.excitement import is_valid_audio, run_audio
 from reel.common.config import ReelConfig, load_config
 from reel.common.logging import get_logger
 from reel.common.paths import JobPaths
+from reel.deliveries.segment import is_valid_deliveries, run_deliveries
 from reel.ingest import is_valid_ingest, run_ingest
 from reel.ingest.scan import is_valid_scan, run_scan
 from reel.jobs.placeholders import (
-    is_valid_audio,
-    is_valid_classify_shots,
-    is_valid_deliveries,
     is_valid_highlights,
     is_valid_render,
-    run_audio,
-    run_classify_shots,
-    run_deliveries,
     run_highlights,
     run_render,
 )
 from reel.jobs.store import fail_job, finish_job, update_progress
 from reel.scoreboard import is_valid_locate_scorebox, run_locate_scorebox
 from reel.scoreboard.score_stage import is_valid_read_score, run_read_score
+from reel.shots.classify import is_valid_classify_shots, run_classify_shots
 
 log = get_logger("jobs.pipeline")
 

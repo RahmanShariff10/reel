@@ -24,7 +24,7 @@ import pytest
 
 from reel.common.models import write_model
 from reel.common.paths import JobPaths
-from reel.ingest.probe import probe_video
+from reel.ingest.probe import extract_audio, probe_video
 from reel.jobs.pipeline import DEFAULT_STAGES, PipelineContext, Stage, run_pipeline
 from reel.jobs.store import (
     claim_next_job,
@@ -149,7 +149,7 @@ class TestStageSkipping:
         # Pre-create valid meta.json so ingest is already valid
         input_vid, _ = generate_synthetic_video(data_dir / "input", duration_s=2.0)
         write_model(paths.meta_json, probe_video(input_vid))
-        paths.audio_wav.write_bytes(b"EXISTING_WAV")
+        extract_audio(input_vid, paths.audio_wav)
 
         invoked_stages = []
 
@@ -320,7 +320,7 @@ class TestStaleJobRequeue:
         paths = JobPaths(job.id, data_dir=data_dir)
         paths.ensure_job_dir()
         write_model(paths.meta_json, probe_video(input_vid))
-        paths.audio_wav.write_bytes(b"AUDIO")
+        extract_audio(input_vid, paths.audio_wav)
 
         # Worker starts up: requeue_stale_jobs resets running jobs to queued
         requeued_count = requeue_stale_jobs(db_path)

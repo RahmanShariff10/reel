@@ -50,18 +50,50 @@ class ScanConfig(BaseModel):
     min_shot_s: float = Field(0.5, ge=0)
 
 
+DEFAULT_SHOT_PROMPTS: dict[str, list[str]] = {
+    "run_up": [
+        "a cricket broadcast view from behind the bowler showing the pitch and the batsman",
+        "a bowler running in to bowl, wide television view down the cricket pitch",
+    ],
+    "close_up": [
+        "a close-up of a cricket player's face",
+        "a close-up television shot of a cricketer celebrating",
+    ],
+    "crowd": ["a crowd of spectators in a cricket stadium", "fans cheering in the stands"],
+    "field": [
+        "a wide view of cricket fielders on a green outfield",
+        "a fielder chasing a cricket ball towards the boundary rope",
+    ],
+    "graphic": [
+        "a television graphic with text and statistics",
+        "a full-screen scoreboard graphic on TV",
+    ],
+}
+
+
 class ShotsConfig(BaseModel):
-    clip_model: str = "ViT-B-32"
+    clip_model: str = "ViT-B-32-quickgelu"
     clip_pretrained: str = "openai"
+    batch_size: int = Field(32, gt=0)
+    classifier_file: str = "shot_classifier.joblib"
+    prompts: dict[str, list[str]] = Field(default_factory=lambda: dict(DEFAULT_SHOT_PROMPTS))
 
 
 class AudioConfig(BaseModel):
     excitement_window_s: float = Field(300.0, gt=0)
     panns_model: str = "Cnn14"
+    use_panns: bool = True
+    panns_hop_s: int = Field(1, ge=1, le=2)
+    weight_loudness: float = Field(0.5, ge=0)
+    weight_crowd: float = Field(0.5, ge=0)
+    loudness_z_full: float = Field(3.0, gt=0)
+    crowd_prob_full: float = Field(0.6, gt=0)
+    mad_floor_db: float = Field(1.0, gt=0)
 
 
 class DeliveriesConfig(BaseModel):
-    max_merge_gap_s: float = Field(2.0, ge=0)
+    max_merge_gap_s: float = Field(3.0, ge=0)
+    last_delivery_s: float = Field(60.0, gt=0)
 
 
 class BaseImportanceConfig(BaseModel):

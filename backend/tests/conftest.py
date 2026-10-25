@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,12 @@ from typing import Any
 import pytest
 
 from tests.fixtures.make_synthetic import generate_synthetic_video
+
+# Reuse the developer's downloaded model weights (repo-root data/models) in tests,
+# so pipeline tests never download models into backend/data.
+os.environ.setdefault(
+    "REEL_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "data" / "models")
+)
 
 
 @dataclass(frozen=True)
