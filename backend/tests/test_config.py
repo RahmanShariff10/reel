@@ -29,7 +29,8 @@ class TestLoadConfigDefaults:
         cfg = load_config()
         assert cfg.data_dir == Path("./data")
 
-    def test_models_dir_default(self):
+    def test_models_dir_default(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.delenv("REEL_MODELS_DIR", raising=False)  # set suite-wide in conftest
         cfg = load_config()
         assert cfg.models_dir == Path("./data/models")
 

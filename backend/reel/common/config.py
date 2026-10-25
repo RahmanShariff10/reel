@@ -92,7 +92,8 @@ class AudioConfig(BaseModel):
 
 
 class DeliveriesConfig(BaseModel):
-    max_merge_gap_s: float = Field(2.0, ge=0)
+    max_merge_gap_s: float = Field(3.0, ge=0)
+    last_delivery_s: float = Field(60.0, gt=0)
 
 
 class BaseImportanceConfig(BaseModel):

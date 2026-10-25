@@ -65,7 +65,8 @@ audio:
   mad_floor_db: 1.0            # minimum spread (dB) so steady audio doesn't look exciting
 
 deliveries:
-  max_merge_gap_s: 2.0         # max gap to merge consecutive run-up detections
+  max_merge_gap_s: 3.0         # run-up shots closer than this are one delivery
+  last_delivery_s: 60.0        # length assumed for the final delivery
 
 highlights:
   base_importance:
