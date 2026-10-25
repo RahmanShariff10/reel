@@ -104,6 +104,10 @@ render:
   codec: "libx264"
   audio_codec: "aac"
   fade_duration_s: 0.3
+  preset: "veryfast"           # x264 speed/quality preset
+  crf: 23                      # x264 quality (lower = better, bigger)
+  audio_bitrate: "128k"
+  audio_rate: 48000
   caption_font_size: 36
 
 signals:
