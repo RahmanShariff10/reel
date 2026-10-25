@@ -15,6 +15,7 @@ from reel.common.config import ReelConfig, load_config
 from reel.common.logging import get_logger
 from reel.common.paths import JobPaths
 from reel.ingest import is_valid_ingest, run_ingest
+from reel.ingest.scan import is_valid_scan, run_scan
 from reel.jobs.placeholders import (
     is_valid_audio,
     is_valid_classify_shots,
@@ -22,14 +23,12 @@ from reel.jobs.placeholders import (
     is_valid_highlights,
     is_valid_read_score,
     is_valid_render,
-    is_valid_scan,
     run_audio,
     run_classify_shots,
     run_deliveries,
     run_highlights,
     run_read_score,
     run_render,
-    run_scan,
 )
 from reel.jobs.store import fail_job, finish_job, update_progress
 from reel.scoreboard import is_valid_locate_scorebox, run_locate_scorebox

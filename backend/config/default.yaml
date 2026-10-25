@@ -22,6 +22,9 @@ scoreboard:
 scan:
   low_res_fps: 4               # fps for camera-cut detection
   score_crop_fps: 2            # fps for score-box crops
+  keyframe_width: 448          # width of low-res frames and keyframes (px)
+  cut_threshold: 27.0          # PySceneDetect ContentDetector threshold
+  min_shot_s: 0.5              # shortest allowed shot (s)
 
 shots:
   clip_model: "ViT-B-32"

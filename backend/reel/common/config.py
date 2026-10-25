@@ -40,6 +40,9 @@ class ScoreboardConfig(BaseModel):
 class ScanConfig(BaseModel):
     low_res_fps: int = Field(4, gt=0)
     score_crop_fps: int = Field(2, gt=0)
+    keyframe_width: int = Field(448, gt=0)
+    cut_threshold: float = Field(27.0, gt=0)
+    min_shot_s: float = Field(0.5, ge=0)
 
 
 class ShotsConfig(BaseModel):
