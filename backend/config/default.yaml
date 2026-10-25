@@ -1,0 +1,72 @@
+# Reel — default configuration
+# One section per pipeline module. Override per-field with load_config(overrides={...}).
+
+data_dir: ./data
+models_dir: ./data/models
+
+ingest:
+  audio_sample_rate: 32000     # Hz, mono WAV for audio extraction
+  audio_channels: 1
+
+scoreboard:
+  sample_frames: 80            # frames to sample for score-box detection
+  skip_start_min: 5.0          # minutes to skip at video start
+  skip_end_min: 5.0            # minutes to skip at video end
+  min_valid_ratio: 0.4         # fraction of sampled frames with valid score text
+  plausibility_ratio: 0.9      # fraction of consecutive pairs that must be plausible
+  consecutive_confirm: 2       # number of consecutive changed crops to accept a reading
+
+scan:
+  low_res_fps: 4               # fps for camera-cut detection
+  score_crop_fps: 2            # fps for score-box crops
+
+shots:
+  clip_model: "ViT-B-32"
+  clip_pretrained: "openai"
+
+audio:
+  excitement_window_s: 300.0   # 5-minute rolling window for loudness baseline
+  panns_model: "Cnn14"
+
+deliveries:
+  max_merge_gap_s: 2.0         # max gap to merge consecutive run-up detections
+
+highlights:
+  base_importance:
+    wicket: 1.0
+    six: 0.85
+    four: 0.7
+    near_miss: 0.5
+    moment_low: 0.4
+    moment_high: 0.8
+  bonus:
+    excitement_max: 0.2        # max crowd excitement bonus
+    replay_per: 0.05           # bonus per replay
+    replay_cap: 0.15           # max replay bonus
+    late_overs: 0.1            # bonus for last 3 overs or close chase
+  clip:
+    pre_hit_s: 6.0
+    post_hit_boundary_s: 12.0
+    post_hit_wicket_s: 20.0
+    gap_before_next_s: 0.5
+    max_boundary_s: 25.0
+    max_wicket_s: 35.0
+  modes:
+    - "3min"
+    - "5min"
+    - "10min"
+    - "all"
+  length_tolerance_s: 15.0
+
+render:
+  output_resolution: [1280, 720]
+  codec: "libx264"
+  audio_codec: "aac"
+  fade_duration_s: 0.3
+  caption_font_size: 36
+
+signals:
+  score: true
+  shots: true
+  audio: true
+  replays: true
