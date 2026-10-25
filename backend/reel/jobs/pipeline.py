@@ -20,7 +20,6 @@ from reel.jobs.placeholders import (
     is_valid_classify_shots,
     is_valid_deliveries,
     is_valid_highlights,
-    is_valid_locate_scorebox,
     is_valid_read_score,
     is_valid_render,
     is_valid_scan,
@@ -28,12 +27,12 @@ from reel.jobs.placeholders import (
     run_classify_shots,
     run_deliveries,
     run_highlights,
-    run_locate_scorebox,
     run_read_score,
     run_render,
     run_scan,
 )
 from reel.jobs.store import fail_job, finish_job, update_progress
+from reel.scoreboard import is_valid_locate_scorebox, run_locate_scorebox
 
 log = get_logger("jobs.pipeline")
 
