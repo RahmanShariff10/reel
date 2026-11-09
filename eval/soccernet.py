@@ -192,6 +192,7 @@ class ManifestEntry:
     game: str
     split: str
     commentary_language: str
+    job_id: str | None = None  # the Reel job that processed this match, once it has been run
 
 
 MatchManifest = ManifestEntry
@@ -238,6 +239,7 @@ def load_manifest(path: Path | str) -> list[ManifestEntry]:
                 game=str(item["game"]),
                 split=str(item["split"]),
                 commentary_language=str(item["commentary_language"]),
+                job_id=str(item["job_id"]) if item.get("job_id") else None,
             )
         )
     return entries
