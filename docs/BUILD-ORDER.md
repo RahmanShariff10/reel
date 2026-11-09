@@ -44,7 +44,7 @@ All of this can be done now, in this order.
 | 1 | [35 soccernet-loader](slices/slice-35-soccernet-loader.md) | eval | — | No | `[x]` |
 | 2 | [36 football-models](slices/slice-36-football-models.md) (see fix A) | common | — | No | `[x]` |
 | 3 | [37 football-fixtures](slices/slice-37-football-fixtures.md) (see fix B) | tests | 36 | No | `[x]` |
-| 4 | [38 real-match-check](slices/slice-38-real-match-check.md), **script and synthetic tests only** | eval | 35, 37 | Script no; running it yes (G1) | `[ ]` |
+| 4 | [38 real-match-check](slices/slice-38-real-match-check.md), **script and synthetic tests only** | eval | 35, 37 | Script no; running it yes (G1) | `[~]` |
 | 5 | [50 football-metrics](slices/slice-50-football-metrics.md) (see fix C) | eval | 35, 36 | No | `[ ]` |
 | 6 | [42 football-shots](slices/slice-42-football-shots.md) | shots | 36 | Final check only | `[ ]` |
 | 7 | [05 api-core](slices/slice-05-api-core.md) | api | done slices only | No | `[ ]` |
@@ -55,10 +55,10 @@ Slice 36 needs agreement from both developers before it is merged.
 
 ### Gate G1: real-footage go/no-go (human)
 Passed when the person with approved access has:
-- downloaded 5–8 games and run `python -m eval.check_assumptions` on 3–5 of them;
+- downloaded 5–8 games and their label files, and run `python -m eval.check_assumptions --manifest <file>` on 3–5 of them (the file needs only a `game` per entry; see the script's docstring);
 - reviewed `eval/reports/assumptions.md` and made the go/no-go call on the clock, replay and audio assumptions;
 - updated `docs/ARCHITECTURE.md` and the affected slices for any assumption that failed;
-- filled in `eval/manifests/matches.yaml` with English-commentary games.
+- replaced `eval/manifests/matches.yaml` with real English-commentary games. **Its current contents are placeholders:** 7 of the 15 game names don't exist in SoccerNet and the `en` tags are unverified. Test games must come from SoccerNet's `test` split, and `test_manifest_matches_yaml_structure` must be updated if the counts change.
 
 Check on 30 November: if access still hasn't arrived, email soccernet.dataset@gmail.com and re-plan.
 
