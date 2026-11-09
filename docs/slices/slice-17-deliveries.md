@@ -1,5 +1,7 @@
 # Slice 17 — Deliveries
 
+> **Replaced by slice 44** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 04 · **Target week:** 7–8 · **Depends on:** 12, 15, 16
 
 ## Module

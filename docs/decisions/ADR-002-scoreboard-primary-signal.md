@@ -1,5 +1,7 @@
 # ADR-002 — The on-screen score graphic, found automatically, is the primary event signal
 
+> **Superseded by [ADR-005](ADR-005-clock-anchored-scoregraphic.md)** after the move to football. Kept for history.
+
 ## Context
 We need to know *what* happened on each ball (four, six, wicket) without training an action-recognition model, on a CPU, and with no user input.
 

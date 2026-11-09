@@ -1,6 +1,6 @@
 # Slice 23 — Result and reel API
 
-**Owner:** Dev B · **Sprint:** 05 · **Target week:** 9–10 · **Depends on:** 05, 22
+**Owner:** Dev B · **Sprint:** F4 · **Target week:** 8 · **Depends on:** 05, 49
 
 ## Module
 `api`

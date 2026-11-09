@@ -3,7 +3,7 @@
 > Instructions for AI coding agents working in this repo. Read this before starting any slice.
 
 ## What this project is
-Reel turns a full T20 cricket broadcast into a captioned highlight reel automatically: a CPU-only Python pipeline (FastAPI + worker) with a Next.js web app. Full context lives in `docs/PRD.md` and `docs/ARCHITECTURE.md` — read those first if you're unfamiliar with the project.
+Reel turns a full football match broadcast into a captioned highlight reel automatically: a CPU-only Python pipeline (FastAPI + worker) with a Next.js web app. Full context lives in `docs/PRD.md` and `docs/ARCHITECTURE.md` — read those first if you're unfamiliar with the project.
 
 ## How work is structured
 Work is broken into **slices** (`docs/slices/`), grouped into **sprints** (`docs/sprints/`; overview in `docs/sprints/README.md`). Each slice has:

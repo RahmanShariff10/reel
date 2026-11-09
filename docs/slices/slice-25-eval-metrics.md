@@ -1,5 +1,7 @@
 # Slice 25 — Evaluation metrics and report
 
+> **Replaced by slice 50** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 06 · **Target week:** 11–12 · **Depends on:** 13, 22
 
 ## Module

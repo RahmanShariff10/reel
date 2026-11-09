@@ -1,5 +1,7 @@
 # Slice 08 — Score-box detection
 
+> **Replaced by slice 39** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 02 · **Target week:** 3–4 · **Depends on:** 03, 07
 
 ## Module

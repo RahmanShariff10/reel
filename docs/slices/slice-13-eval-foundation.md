@@ -1,5 +1,7 @@
 # Slice 13 — Evaluation foundation
 
+> **Replaced by slice 35 and 50** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 03 · **Target week:** 6–7 · **Depends on:** 02, 12
 
 ## Module

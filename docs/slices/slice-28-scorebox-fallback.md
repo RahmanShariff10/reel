@@ -1,6 +1,6 @@
 # Slice 28 — Manual score-box fallback
 
-**Owner:** Dev A · **Sprint:** 07 · **Target week:** 12–13 · **Depends on:** 08, 22, 24
+**Owner:** Dev A · **Sprint:** F5 · **Target week:** 11 · **Depends on:** 39, 49, 24
 
 ## Module
 `api` + `frontend`

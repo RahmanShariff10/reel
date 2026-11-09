@@ -1,5 +1,7 @@
 # Slice 11 — Score reading
 
+> **Replaced by slice 40** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 03 · **Target week:** 5 · **Depends on:** 08, 09
 
 ## Module

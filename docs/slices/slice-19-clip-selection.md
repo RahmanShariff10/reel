@@ -1,5 +1,7 @@
 # Slice 19 — Clip boundaries and selection
 
+> **Replaced by slice 47** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 04 · **Target week:** 8–9 · **Depends on:** 18
 
 ## Module

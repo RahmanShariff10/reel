@@ -1,6 +1,6 @@
 # Slice 30 — Edit reel
 
-**Owner:** Dev B · **Sprint:** 07 · **Target week:** 13 · **Depends on:** 23, 24
+**Owner:** Dev B · **Sprint:** F5 · **Target week:** 12 · **Depends on:** 23, 24
 
 ## Module
 `frontend`

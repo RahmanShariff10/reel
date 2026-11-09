@@ -1,6 +1,6 @@
 # Slice 33 — Vertical export (stretch)
 
-**Owner:** Dev B · **Sprint:** 08 · **Target week:** 14 · **Depends on:** 21, 23
+**Owner:** Dev B · **Sprint:** F6 · **Target week:** 13 · **Depends on:** 48, 23
 
 ## Module
 `render`

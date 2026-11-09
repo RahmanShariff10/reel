@@ -1,5 +1,7 @@
 # Slice 27 — Near-miss moments
 
+> **Replaced by slice 46** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 07 · **Target week:** 12–13 · **Depends on:** 18, 19, 24
 
 ## Module
