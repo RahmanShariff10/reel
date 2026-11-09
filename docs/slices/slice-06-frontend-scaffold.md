@@ -16,13 +16,13 @@
   - after upload, it calls `POST /api/jobs` and navigates to `/jobs/{job_id}` (a placeholder page for now).
 
 ## Acceptance criteria
-- [ ] `npm run build`, `npm run lint` and `tsc --noEmit` pass.
-- [ ] Given a `.mp4` file, when selected, then its name and size are shown and the upload button is enabled.
-- [ ] Given a non-video file, when selected, then a message explains only .mp4/.mkv are accepted and nothing is uploaded.
-- [ ] Given an upload in progress, then the progress bar shows the percent uploaded.
-- [ ] Given a successful upload, then the browser navigates to `/jobs/{job_id}`.
-- [ ] Given a local path, when submitted, then a job is created without uploading and the browser navigates to the job page.
-- [ ] Given an API error, then a readable message is shown (not raw JSON).
+- [x] `npm run build`, `npm run lint` and `tsc --noEmit` pass.
+- [x] Given a `.mp4` file, when selected, then its name and size are shown and the upload button is enabled.
+- [x] Given a non-video file, when selected, then a message explains only .mp4/.mkv are accepted and nothing is uploaded.
+- [x] Given an upload in progress, then the progress bar shows the percent uploaded.
+- [x] Given a successful upload, then the browser navigates to `/jobs/{job_id}`.
+- [x] Given a local path, when submitted, then a job is created without uploading and the browser navigates to the job page.
+- [x] Given an API error, then a readable message is shown (not raw JSON).
 
 ## Mockup / reference
 ```
