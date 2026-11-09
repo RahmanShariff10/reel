@@ -15,14 +15,14 @@ FastAPI app `reel.api.main:app`, bound to `REEL_API_HOST:REEL_API_PORT` (default
 All errors use `{ "error": { "code", "message" } }`.
 
 ## Acceptance criteria
-- [ ] Given a 200 MB body sent in chunks, when uploaded, then the saved file is byte-identical and the response has `upload_id` and `size_bytes`.
-- [ ] Given a `.txt` filename, when uploading, then the response is 415 in the error format.
-- [ ] Given a valid `upload_id`, when `POST /api/jobs`, then the response is 201 with `job_id` and the job is `queued` in the database.
-- [ ] Given a `local_path` that doesn't exist or isn't mp4/mkv, when `POST /api/jobs`, then the response is 400 with a clear error code.
-- [ ] Given an unknown job id, when `GET /api/jobs/{id}`, then the response is 404 in the error format.
-- [ ] Given a file in a job folder and `Range: bytes=0-99`, when `GET /api/files/...`, then the response is 206 with 100 bytes and a correct `Content-Range` header.
-- [ ] Given a path containing `../`, when `GET /api/files/...`, then the request is rejected and nothing outside the job folder is served.
-- [ ] Given a request from origin `http://localhost:3000`, then CORS headers allow it.
+- [x] Given a 200 MB body sent in chunks, when uploaded, then the saved file is byte-identical and the response has `upload_id` and `size_bytes`.
+- [x] Given a `.txt` filename, when uploading, then the response is 415 in the error format.
+- [x] Given a valid `upload_id`, when `POST /api/jobs`, then the response is 201 with `job_id` and the job is `queued` in the database.
+- [x] Given a `local_path` that doesn't exist or isn't mp4/mkv, when `POST /api/jobs`, then the response is 400 with a clear error code.
+- [x] Given an unknown job id, when `GET /api/jobs/{id}`, then the response is 404 in the error format.
+- [x] Given a file in a job folder and `Range: bytes=0-99`, when `GET /api/files/...`, then the response is 206 with 100 bytes and a correct `Content-Range` header.
+- [x] Given a path containing `../`, when `GET /api/files/...`, then the request is rejected and nothing outside the job folder is served.
+- [x] Given a request from origin `http://localhost:3000`, then CORS headers allow it.
 
 ## Out of scope for this slice
 `/result`, `/excitement`, `/reels`, `/scorebox` endpoints (later slices). Authentication (not needed: localhost only).
