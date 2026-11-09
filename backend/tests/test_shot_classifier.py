@@ -17,7 +17,6 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-import pytest
 
 from reel.common.config import load_config
 from reel.common.models import Shot, read_model, write_model
@@ -70,14 +69,14 @@ class TestLabelSession:
         out = tmp_path / "shots_m.csv"
         s = LabelSession("job", "m", [0, 1, 2, 3], out)
         assert s.current == 0
-        assert s.key("1") and s.labels[0] == "run_up"
+        assert s.key("1") and s.labels[0] == "wide"
         assert s.key("s") and s.labels[1] == "skip"
         assert s.key("x") and s.current == 2  # unknown key does nothing
         assert s.key("u") and 1 not in s.labels and s.current == 1
         assert s.key("5") and s.labels[1] == "graphic"
         assert s.key("q") is False
         rows = list(csv.DictReader(open(out)))
-        assert [(r["shot_id"], r["label"]) for r in rows] == [("0", "run_up"), ("1", "graphic")]
+        assert [(r["shot_id"], r["label"]) for r in rows] == [("0", "wide"), ("1", "graphic")]
 
     def test_resume_at_first_unlabelled(self, tmp_path: Path) -> None:
         out = tmp_path / "shots_m.csv"
@@ -126,7 +125,6 @@ class TestTraining:
         assert (preds[0] == preds[1]).all()
 
 
-@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestPipelineUsesClassifier:
     def _job(self, tmp: Path, models_dir: Path) -> PipelineContext:
         paths = JobPaths("job", data_dir=tmp / "data")

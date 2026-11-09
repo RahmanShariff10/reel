@@ -22,7 +22,7 @@ from reel.jobs.pipeline import PipelineContext
 from reel.shots.classify import ClipEmbedder, is_valid_classify_shots, run_classify_shots
 
 REPO_MODELS = Path(__file__).resolve().parents[2] / "data" / "models"
-CLASSES = ["run_up", "close_up", "crowd", "field", "graphic"]
+CLASSES = ["wide", "medium", "close_up", "crowd", "graphic"]
 
 
 class StubEmbedder:
@@ -60,7 +60,6 @@ def make_job(tmp: Path, n_shots: int = 7, overrides: dict | None = None) -> Pipe
     return PipelineContext(job_id="job", db_path=tmp / "db", paths=paths, config=cfg)
 
 
-@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestStub:
     def test_labels_and_probabilities(self, tmp_path: Path) -> None:
         ctx = make_job(tmp_path)
@@ -82,20 +81,19 @@ class TestStub:
         assert second.image_calls == 0
 
     def test_prompts_from_config_change_labels(self, tmp_path: Path) -> None:
-        # Swap the run_up and crowd prompts: shots embedded on the run_up axis become crowd.
+        # Swap the wide and crowd prompts: shots embedded on the wide axis become crowd.
         swapped = {c: [f"a photo of {c}"] for c in CLASSES}
-        swapped["run_up"], swapped["crowd"] = ["a photo of crowd"], ["a photo of run_up"]
+        swapped["wide"], swapped["crowd"] = ["a photo of crowd"], ["a photo of wide"]
         ctx = make_job(tmp_path, overrides={"shots": {"prompts": swapped}})
         run_classify_shots(ctx, embedder=StubEmbedder())
         shots = read_model(ctx.paths.shots_json, list[Shot])
-        assert shots[0].label == "crowd" and shots[2].label == "run_up"
+        assert shots[0].label == "crowd" and shots[3].label == "wide"
 
 
 @pytest.mark.skipif(
     not REPO_MODELS.is_dir() or not any(REPO_MODELS.iterdir()),
     reason="CLIP weights not downloaded to data/models",
 )
-@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestRealClipOffline:
     def test_runs_without_network(self, scanned_match: PipelineContext, monkeypatch) -> None:
         def no_network(*args, **kwargs):

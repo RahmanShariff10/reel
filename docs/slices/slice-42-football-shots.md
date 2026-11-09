@@ -11,10 +11,10 @@
 - Report comparing zero-shot and trained classifier using leave-one-match-out validation.
 
 ## Acceptance criteria
-- [ ] Given stub embeddings, then zero-shot labels use the new classes.
-- [ ] Given a cameras file, then "Main camera center" maps to `wide`, "Close-up player or field referee" to `close_up` and "Public" to `crowd`.
-- [ ] Given a `replay` row, then it isn't used for training.
-- [ ] Given stub data, then the classifier trains and writes `shot_classifier.joblib`.
+- [x] Given stub embeddings, then zero-shot labels use the new classes.
+- [x] Given a cameras file, then "Main camera center" maps to `wide`, "Close-up player or field referee" to `close_up` and "Public" to `crowd`.
+- [x] Given a `replay` row, then it isn't used for training.
+- [x] Given stub data, then the classifier trains and writes `shot_classifier.joblib`.
 - [ ] Human: on dev matches the better method is kept, and macro-F1 is recorded in the sprint notes.
 
 ## Out of scope for this slice

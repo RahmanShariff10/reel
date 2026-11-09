@@ -1,6 +1,11 @@
 """Train the shot classifier on labelled keyframes.
 
     uv run python -m reel.shots.train [--labels eval/labels] [--data-dir data]
+    uv run python -m reel.shots.train --from-soccernet eval/manifests/matches.yaml
+
+``--from-soccernet`` first builds the label files from SoccerNet's ``Labels-cameras.json`` for
+every manifest entry with a ``job_id``, instead of using hand-made labels. Run it only on the
+laptop approved for SoccerNet, because it needs those jobs' cached embeddings.
 
 Logistic regression on the CLIP embeddings (``shot_embeddings.npy``) of every labelled
 shot. Saves ``{models_dir}/shot_classifier.joblib`` and a report comparing it with
@@ -10,16 +15,21 @@ zero-shot labels, using leave-one-match-out validation (5-fold if only one match
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
+import json
+import re
 import sys
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import yaml
 
 from reel.common.config import load_config
 from reel.common.logging import get_logger
+from reel.common.models import Shot, read_model
 from reel.common.paths import JobPaths
 from reel.shots.classify import ClipEmbedder, Embedder, zero_shot
 from reel.shots.label import CLASSES, LABELS_DIR, SKIP
@@ -158,6 +168,87 @@ def train(
     return {"classifier": clf, "zero_shot": zs, "scheme": scheme}
 
 
+@dataclass(frozen=True)
+class CameraRow:
+    """One SoccerNet camera shot, with its time in the joined match file."""
+
+    start_s: float
+    camera: str
+    replay: bool
+
+
+def load_camera_rows(path: Path, first_half_s: float) -> list[CameraRow]:
+    """Read ``Labels-cameras.json``; second-half times are shifted by the first half's length."""
+    rows = []
+    for item in json.loads(path.read_text())["annotations"]:
+        half = int(str(item["gameTime"]).split("-")[0])
+        offset = first_half_s if half == 2 else 0.0
+        rows.append(
+            CameraRow(
+                start_s=offset + int(item["position"]) / 1000,
+                camera=str(item["label"]),
+                replay=str(item.get("replay", "")).strip().lower() == "replay",
+            )
+        )
+    return sorted(rows, key=lambda r: r.start_s)
+
+
+def labels_from_cameras(
+    shots: list[Shot], rows: list[CameraRow], camera_map: dict[str, str]
+) -> dict[int, str]:
+    """Label each shot from the camera shown at its keyframe (the middle of the shot).
+
+    Replays and camera classes missing from the map give no label.
+    """
+    times = [r.start_s for r in rows]
+    labels: dict[int, str] = {}
+    for shot in shots:
+        i = bisect.bisect_right(times, (shot.start_s + shot.end_s) / 2) - 1
+        if i < 0 or rows[i].replay:
+            continue
+        label = camera_map.get(rows[i].camera)
+        if label is not None:
+            labels[shot.id] = label
+    return labels
+
+
+def _match_id(game: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "-", game.rstrip("/").split("/")[-1]).strip("-")
+
+
+def write_soccernet_labels(
+    manifest: Path,
+    soccernet_labels: Path,
+    prepared: Path,
+    data_dir: Path,
+    labels_dir: Path,
+    camera_map: dict[str, str],
+) -> int:
+    """Write ``shots_<match>.csv`` for every manifest entry with a job. Returns the label count."""
+    raw = yaml.safe_load(manifest.read_text())
+    total = 0
+    labels_dir.mkdir(parents=True, exist_ok=True)
+    for item in raw["matches"]:
+        job_id, game = item.get("job_id"), item["game"]
+        if not job_id:
+            log.info("Skipping %s: no job_id", game)
+            continue
+        match_info = json.loads((prepared / game / "match.json").read_text())
+        first_half_s = float(match_info["first_half_s"])
+        rows = load_camera_rows(soccernet_labels / game / "Labels-cameras.json", first_half_s)
+        shots = read_model(JobPaths(job_id, data_dir=data_dir).shots_json, list[Shot])
+        labels = labels_from_cameras(shots, rows, camera_map)
+        match_id = _match_id(game)
+        with open(labels_dir / f"shots_{match_id}.csv", "w", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["job_id", "match_id", "shot_id", "label"])
+            writer.writerows([job_id, match_id, sid, lab] for sid, lab in sorted(labels.items()))
+        total += len(labels)
+    if not total:
+        raise ValueError(f"No labels produced from {manifest}: does any entry have a job_id?")
+    return total
+
+
 def main(argv: list[str] | None = None) -> int:
     cfg = load_config()
     parser = argparse.ArgumentParser(description="Train the shot classifier")
@@ -167,7 +258,22 @@ def main(argv: list[str] | None = None) -> int:
         "--out", type=Path, default=Path(cfg.models_dir) / cfg.shots.classifier_file
     )
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
+    parser.add_argument("--from-soccernet", type=Path, default=None, metavar="MANIFEST")
+    parser.add_argument(
+        "--soccernet-labels", type=Path, default=LABELS_DIR.parent / "soccernet"
+    )
+    parser.add_argument("--prepared", type=Path, default=Path("data/soccernet/prepared"))
     args = parser.parse_args(argv)
+    if args.from_soccernet:
+        count = write_soccernet_labels(
+            args.from_soccernet,
+            args.soccernet_labels,
+            args.prepared,
+            args.data_dir,
+            args.labels,
+            cfg.shots.camera_map,
+        )
+        print(f"{count} training labels written to {args.labels}")
     result = train(args.labels, args.data_dir, args.out, args.report)
     print(
         f"Classifier accuracy {result['classifier']['accuracy']:.3f} "

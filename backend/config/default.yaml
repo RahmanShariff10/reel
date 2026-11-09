@@ -48,21 +48,34 @@ shots:
   batch_size: 32
   classifier_file: "shot_classifier.joblib"   # in models_dir; used instead of zero-shot if present
   prompts:                     # zero-shot text prompts per shot class
-    run_up:
-      - "a cricket broadcast view from behind the bowler showing the pitch and the batsman"
-      - "a bowler running in to bowl, wide television view down the cricket pitch"
+    wide:
+      - "a wide television view of a football pitch from the main camera, showing many players"
+      - "a high-angle broadcast view of a soccer match in play"
+    medium:
+      - "a medium television shot of several football players on the pitch"
+      - "a soccer broadcast shot following the ball at pitch level"
     close_up:
-      - "a close-up of a cricket player's face"
-      - "a close-up television shot of a cricketer celebrating"
+      - "a close-up of a footballer's face"
+      - "a close-up television shot of a football player celebrating"
     crowd:
-      - "a crowd of spectators in a cricket stadium"
+      - "a crowd of spectators in a football stadium"
       - "fans cheering in the stands"
-    field:
-      - "a wide view of cricket fielders on a green outfield"
-      - "a fielder chasing a cricket ball towards the boundary rope"
     graphic:
       - "a television graphic with text and statistics"
       - "a full-screen scoreboard graphic on TV"
+  camera_map:                  # SoccerNet camera class -> shot label, for training
+    "Main camera center": wide
+    "Main camera left": wide
+    "Main camera right": wide
+    "Main behind the goal": medium
+    "Goal line technology camera": medium
+    "Spider camera": medium
+    "Close-up player or field referee": close_up
+    "Close-up side staff": close_up
+    "Close-up behind the goal": close_up
+    "Close-up corner": close_up
+    "Inside the goal": close_up
+    "Public": crowd
 
 audio:
   excitement_window_s: 300.0   # 5-minute rolling window for loudness baseline
