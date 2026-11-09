@@ -14,8 +14,8 @@
 - A recommendation for each assumption: holds, or what to change.
 
 ## Acceptance criteria
-- [ ] Given synthetic inputs with known answers, then A1, A2 and A3 report them correctly.
-- [ ] Given a run, then the report contains no images or copied broadcast text beyond team codes.
+- [x] Given synthetic inputs with known answers, then A1, A2 and A3 report them correctly.
+- [x] Given a run, then the report contains no images or copied broadcast text beyond team codes.
 - [ ] Human: the script is run on real matches and the report is reviewed.
 - [ ] Human: where an assumption fails, ARCHITECTURE.md and the affected slices are updated before slice 39 starts.
 - [ ] Human: `eval/manifests/matches.yaml` is filled in with English-commentary games.
