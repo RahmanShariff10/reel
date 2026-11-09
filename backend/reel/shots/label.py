@@ -2,8 +2,8 @@
 
     uv run python -m reel.shots.label --job <job_id> [--match-id <id>]
 
-Shows each keyframe of a job in a window. Keys: 1 run_up · 2 close_up · 3 crowd ·
-4 field · 5 graphic · s skip · u undo · q quit. Labels are saved after every key to
+Shows each keyframe of a job in a window. Keys: 1 wide · 2 medium · 3 close_up ·
+4 crowd · 5 graphic · s skip · u undo · q quit. Labels are saved after every key to
 ``eval/labels/shots_<match_id>.csv`` (job id, shot id, label — no images), and the tool
 resumes at the first shot without a label.
 """
@@ -19,7 +19,7 @@ from reel.common.config import load_config
 from reel.common.models import Shot, read_model
 from reel.common.paths import JobPaths
 
-CLASSES = ["run_up", "close_up", "crowd", "field", "graphic"]
+CLASSES = ["wide", "medium", "close_up", "crowd", "graphic"]
 SKIP = "skip"
 LABELS_DIR = Path(__file__).resolve().parents[3] / "eval" / "labels"
 FIELDS = ["job_id", "match_id", "shot_id", "label"]
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     out = args.out or LABELS_DIR / f"shots_{match_id}.csv"
     session = LabelSession(args.job, match_id, [s.id for s in shots], out)
     by_id = {s.id: s for s in shots}
-    window = "Reel labelling: 1 run_up 2 close_up 3 crowd 4 field 5 graphic | s skip u undo q quit"
+    window = "Reel labelling: 1 wide 2 medium 3 close_up 4 crowd 5 graphic | s skip u undo q quit"
 
     while (shot_id := session.current) is not None:
         img = cv2.imread(str(paths.root / by_id[shot_id].keyframe_path))

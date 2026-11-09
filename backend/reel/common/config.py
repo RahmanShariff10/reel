@@ -61,23 +61,39 @@ class ScanConfig(BaseModel):
 
 
 DEFAULT_SHOT_PROMPTS: dict[str, list[str]] = {
-    "run_up": [
-        "a cricket broadcast view from behind the bowler showing the pitch and the batsman",
-        "a bowler running in to bowl, wide television view down the cricket pitch",
+    "wide": [
+        "a wide television view of a football pitch from the main camera, showing many players",
+        "a high-angle broadcast view of a soccer match in play",
+    ],
+    "medium": [
+        "a medium television shot of several football players on the pitch",
+        "a soccer broadcast shot following the ball at pitch level",
     ],
     "close_up": [
-        "a close-up of a cricket player's face",
-        "a close-up television shot of a cricketer celebrating",
+        "a close-up of a footballer's face",
+        "a close-up television shot of a football player celebrating",
     ],
-    "crowd": ["a crowd of spectators in a cricket stadium", "fans cheering in the stands"],
-    "field": [
-        "a wide view of cricket fielders on a green outfield",
-        "a fielder chasing a cricket ball towards the boundary rope",
-    ],
+    "crowd": ["a crowd of spectators in a football stadium", "fans cheering in the stands"],
     "graphic": [
         "a television graphic with text and statistics",
         "a full-screen scoreboard graphic on TV",
     ],
+}
+
+# SoccerNet camera classes that give a training label. Others ("Other", "I don't know") are unused.
+DEFAULT_CAMERA_MAP: dict[str, str] = {
+    "Main camera center": "wide",
+    "Main camera left": "wide",
+    "Main camera right": "wide",
+    "Main behind the goal": "medium",
+    "Goal line technology camera": "medium",
+    "Spider camera": "medium",
+    "Close-up player or field referee": "close_up",
+    "Close-up side staff": "close_up",
+    "Close-up behind the goal": "close_up",
+    "Close-up corner": "close_up",
+    "Inside the goal": "close_up",
+    "Public": "crowd",
 }
 
 
@@ -87,6 +103,7 @@ class ShotsConfig(BaseModel):
     batch_size: int = Field(32, gt=0)
     classifier_file: str = "shot_classifier.joblib"
     prompts: dict[str, list[str]] = Field(default_factory=lambda: dict(DEFAULT_SHOT_PROMPTS))
+    camera_map: dict[str, str] = Field(default_factory=lambda: dict(DEFAULT_CAMERA_MAP))
 
 
 class AudioConfig(BaseModel):
