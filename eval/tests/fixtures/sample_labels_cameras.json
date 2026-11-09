@@ -1,0 +1,34 @@
+{
+  "UrlLocal": "england_epl/2014-2015/2015-02-21 - 18-00 Chelsea 1 - 1 Burnley",
+  "annotations": [
+    {
+      "gameTime": "1 - 00:05",
+      "label": "Main camera center",
+      "position": "5000",
+      "replay": "real"
+    },
+    {
+      "gameTime": "1 - 13:15",
+      "label": "Close-up player",
+      "position": "795000",
+      "replay": "replay"
+    },
+    {
+      "gameTime": "2 - 01:00",
+      "label": "Main camera center",
+      "position": "60000",
+      "replay": "real"
+    },
+    {
+      "gameTime": "2 - 10:20",
+      "label": "Behind the goal",
+      "position": "620000",
+      "replay": "replay"
+    },
+    {
+      "gameTime": "2 - 25:00",
+      "label": "Main camera left",
+      "position": "1500000"
+    }
+  ]
+}

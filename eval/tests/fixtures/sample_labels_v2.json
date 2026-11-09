@@ -1,0 +1,61 @@
+{
+  "UrlLocal": "england_epl/2014-2015/2015-02-21 - 18-00 Chelsea 1 - 1 Burnley",
+  "annotations": [
+    {
+      "gameTime": "1 - 13:10",
+      "label": "Goal",
+      "position": "790722",
+      "team": "home",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "1 - 25:30",
+      "label": "Yellow card",
+      "position": "1530000",
+      "team": "away",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "1 - 33:00",
+      "label": "Penalty",
+      "position": "1980000",
+      "team": "home",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "1 - 44:15",
+      "label": "Shots on target",
+      "position": "2655000",
+      "team": "away",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "2 - 10:00",
+      "label": "Red card",
+      "position": "600000",
+      "team": "home",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "2 - 20:45",
+      "label": "Yellow->red card",
+      "position": "1245000",
+      "team": "away",
+      "visibility": "visible"
+    },
+    {
+      "gameTime": "2 - 35:00",
+      "label": "Foul",
+      "position": "2100000",
+      "team": "home",
+      "visibility": "unshown"
+    },
+    {
+      "gameTime": "2 - 40:10",
+      "label": "Substitution",
+      "position": "2410000",
+      "team": "away",
+      "visibility": "visible"
+    }
+  ]
+}

@@ -15,12 +15,12 @@
 Labels download to `eval/soccernet/` (gitignored). The unit-test fixture is a small hand-written label file, not a copy of a SoccerNet one.
 
 ## Acceptance criteria
-- [ ] Given a `Labels-v2.json`-format fixture, then every annotation loads with the right half and milliseconds.
-- [ ] Given a second-half label at 100 000 ms and `first_half_s` of 2800, then `to_match_time` returns 2900.0.
-- [ ] Given the fixture, then only the five key-action labels are returned as key actions.
-- [ ] Given a `Labels-cameras.json`-format fixture, then `replay` is true only for `"replay"` rows.
-- [ ] Given two synthetic half videos, then `eval.prepare` produces a playable file whose duration is their sum (±0.5 s), without re-encoding.
-- [ ] Given a manifest missing a required field, then a clear error names the game and field.
+- [x] Given a `Labels-v2.json`-format fixture, then every annotation loads with the right half and milliseconds.
+- [x] Given a second-half label at 100 000 ms and `first_half_s` of 2800, then `to_match_time` returns 2900.0.
+- [x] Given the fixture, then only the five key-action labels are returned as key actions.
+- [x] Given a `Labels-cameras.json`-format fixture, then `replay` is true only for `"replay"` rows.
+- [x] Given two synthetic half videos, then `eval.prepare` produces a playable file whose duration is their sum (±0.5 s), without re-encoding.
+- [x] Given a manifest missing a required field, then a clear error names the game and field.
 
 ## Out of scope for this slice
 Metrics (slice 50). Downloading videos.
