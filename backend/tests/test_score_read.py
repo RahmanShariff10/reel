@@ -68,6 +68,7 @@ def _near_boundary(schedule: dict, t: float) -> bool:
     return any(abs(t - e) <= EDGE_S for e in edges)
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 40")
 class TestSyntheticReading:
     def test_visible_crops_parse_correctly(self, readings, synthetic_match: SyntheticMatch):
         rd, _ = readings
@@ -95,6 +96,7 @@ class TestSyntheticReading:
         assert stats.ocr_calls / stats.crops < 0.25
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 40")
 class TestJobOutput:
     def test_writes_score_readings_json(self, scanned_match: PipelineContext) -> None:
         from reel.common.models import ScoreReading

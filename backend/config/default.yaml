@@ -23,6 +23,17 @@ scoreboard:
   max_run_jump: 13             # a larger run increase in one change is treated as an OCR error
   drs_window_s: 120.0          # a wicket reverting within this window is a DRS reversal
   new_innings_max_runs: 12     # runs at most this after the reset count as a new innings
+  # Football. Cricket-only keys above (plausibility_ratio, consecutive_confirm, max_run_jump,
+  # drs_window_s, new_innings_max_runs) are removed in slice 49.
+  clock_rate_min: 0.9          # clock change / video time change must be at least this
+  clock_rate_max: 1.1          # ... and at most this
+  clock_linear_ratio: 0.7      # fraction of consecutive samples that must pass the rate check
+  clock_change_ratio: 0.8      # a pixel changing on this share of crops 1 s apart is the clock
+  score_max: 15                # largest number accepted as a goal count
+  clock_read_s: 30.0           # seconds between clock readings
+  score_confirm: 3             # consecutive readings needed to accept a new score
+  goal_overturn_window_s: 300.0  # a goal removed within this window is overturned
+  half_gap_s: 300.0            # a clock gap this long starts a new half
 
 scan:
   low_res_fps: 4               # fps for camera-cut detection
@@ -64,24 +75,63 @@ audio:
   crowd_prob_full: 0.6         # summed cheer/applause/crowd probability that counts as full
   mad_floor_db: 1.0            # minimum spread (dB) so steady audio doesn't look exciting
 
-deliveries:
+moments:
+  merge_window_s: 25.0         # sources this close in time become one moment
+  goal_lookback_s: 90.0        # search this far before a score change for the goal
+  default_goal_lag_s: 20.0     # goal time before the score change when there is no audio
+  peak_smooth_s: 3.0           # smoothing applied to excitement before finding peaks
+  peak_prominence: 0.2         # minimum peak prominence (starting value, tune on dev matches)
+  peak_min_gap_s: 30.0         # minimum distance from a stronger peak
+  replay_min_s: 3.0            # shortest hidden-graphic run counted as a replay
+  replay_lookback_s: 30.0      # search this far before a replay for its moment
+  replay_count_window_s: 60.0  # replays counted within this long after a moment
+
+commentary:
+  whisper_model: "small"       # faster-whisper model; multilingual, so language can be checked
+  compute_type: "int8"
+  window_pre_s: 8.0            # transcribe from this long before the moment
+  window_post_s: 12.0          # ... to this long after it
+  commentary_top_k: 60         # non-goal moments transcribed, by excitement
+  language_check_windows: 5    # windows used to detect the commentary language
+  keywords:
+    penalty: ["penalty", "spot kick"]
+    red_card: ["red card", "sent off"]
+    chance: ["what a save", "great save", "off the post", "hits the bar", "crossbar", "so close", "just wide"]
+    yellow_card: ["yellow card", "booked"]
+  precedence: ["goal", "penalty", "red_card", "chance", "yellow_card"]
+
+deliveries:                    # cricket-only, removed in slice 49
   max_merge_gap_s: 3.0         # run-up shots closer than this are one delivery
   last_delivery_s: 60.0        # length assumed for the final delivery
 
 highlights:
   base_importance:
-    wicket: 1.0
+    goal: 1.0
+    penalty: 0.85
+    red_card: 0.85
+    chance: 0.65
+    yellow_card: 0.3
+    wicket: 1.0                # wicket, six, four, near_miss: cricket-only, removed in slice 49
     six: 0.85
     four: 0.7
     near_miss: 0.5
     moment_low: 0.4
-    moment_high: 0.8
+    moment_high: 0.7
   bonus:
     excitement_max: 0.2        # max crowd excitement bonus
     replay_per: 0.05           # bonus per replay
     replay_cap: 0.15           # max replay bonus
-    late_overs: 0.1            # bonus for last 3 overs or close chase
-  clip:
+    late_game: 0.1             # bonus from the 80th minute with the score within one goal
+    commentary: 0.1            # bonus when a commentary keyword matched
+    late_overs: 0.1            # cricket-only, removed in slice 49
+  clips:                       # seconds around the moment, per event type
+    goal: {pre_s: 20.0, post_s: 25.0, cap_s: 45.0}
+    penalty: {pre_s: 20.0, post_s: 20.0, cap_s: 30.0}
+    chance: {pre_s: 12.0, post_s: 10.0, cap_s: 25.0}
+    red_card: {pre_s: 10.0, post_s: 12.0, cap_s: 25.0}
+    yellow_card: {pre_s: 10.0, post_s: 12.0, cap_s: 25.0}
+    moment: {pre_s: 12.0, post_s: 10.0, cap_s: 25.0}
+  clip:                        # cricket-only, removed in slice 49
     pre_hit_s: 6.0
     post_hit_boundary_s: 12.0
     post_hit_wicket_s: 20.0
@@ -90,6 +140,8 @@ highlights:
     max_wicket_s: 35.0
   moment_min_excitement: 0.6   # without a score box: excitement needed for a "moment"
   title_card_s: 3.0            # title card length, counted in the reel length
+  late_minute_from: 80         # minute from which the late-game bonus applies
+  late_goal_margin: 1          # score must be within this many goals for the late-game bonus
   late_overs_from: 17.0        # overs from which the last-3-overs bonus applies
   close_chase_runs: 30         # second innings within this many runs of the target = close chase
   modes:
@@ -115,3 +167,4 @@ signals:
   shots: true
   audio: true
   replays: true
+  commentary: true

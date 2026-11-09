@@ -18,6 +18,7 @@ Acceptance criteria:
 from __future__ import annotations
 
 import concurrent.futures
+import sys
 from pathlib import Path
 
 import pytest
@@ -55,6 +56,35 @@ def data_dir(tmp_path: Path) -> Path:
     return d
 
 
+@pytest.fixture
+def stub_stages(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Replace the real stages with recording stubs; these tests are about the worker loop.
+
+    The real stages are mid-move from cricket to football until slice 49, and
+    test_pipeline_wiring covers them end to end. Returns the names of stages that ran.
+    """
+    invoked: list[str] = []
+
+    def stub(name: str):
+        def run(ctx, cb=None) -> None:
+            invoked.append(name)
+
+        return run
+
+    stages = [
+        Stage(
+            name=s.name,
+            weight=s.weight,
+            validator=s.validator if s.name == "ingest" else (lambda _: False),
+            runner=stub(s.name),
+        )
+        for s in DEFAULT_STAGES
+    ]
+    monkeypatch.setattr("reel.jobs.pipeline.DEFAULT_STAGES", stages)
+    monkeypatch.setattr(sys.modules[__name__], "DEFAULT_STAGES", stages)
+    return invoked
+
+
 # ---------------------------------------------------------------------------
 # AC 1: New job is queued with progress 0
 # ---------------------------------------------------------------------------
@@ -84,8 +114,8 @@ class TestCreateJob:
 
 
 class TestWorkerOnce:
-    def test_worker_once_completes_job_and_all_placeholder_stages(
-        self, db_path: Path, data_dir: Path
+    def test_worker_once_completes_job_and_all_stages(
+        self, db_path: Path, data_dir: Path, stub_stages: list[str]
     ):
         input_vid, _ = generate_synthetic_video(data_dir, duration_s=2.0)
 
@@ -105,25 +135,9 @@ class TestWorkerOnce:
         assert finished_job.finished_at is not None
         assert finished_job.error is None
 
-        # Verify output files from placeholder stages exist
-        paths = JobPaths(job.id, data_dir=data_dir)
-        assert paths.meta_json.is_file()
-        assert paths.audio_wav.is_file()
-        assert paths.scorebox_json.is_file()
-        assert paths.scorebox_preview_jpg.is_file()
-        assert paths.shots_json.is_file()
-        assert paths.score_readings_json.is_file()
-        assert paths.score_timeline_json.is_file()
-        assert paths.score_events_json.is_file()
-        assert paths.shot_embeddings_npy.is_file()
-        assert paths.excitement_csv.is_file()
-        assert paths.deliveries_json.is_file()
-        assert paths.events_json.is_file()
-        assert paths.reel_plan_path("5min").is_file()
-        assert paths.reel_path("5min").is_file()
-        assert paths.summary_json.is_file()
+        assert stub_stages == [s.name for s in DEFAULT_STAGES]
 
-    def test_cli_worker_main_once(self, db_path: Path, data_dir: Path):
+    def test_cli_worker_main_once(self, db_path: Path, data_dir: Path, stub_stages: list[str]):
         input_vid, _ = generate_synthetic_video(data_dir, duration_s=2.0)
         job = create_job(db_path, input_path=str(input_vid))
         ret = main(["--once", "--db-path", str(db_path), "--data-dir", str(data_dir)])
@@ -141,7 +155,9 @@ class TestWorkerOnce:
 
 
 class TestStageSkipping:
-    def test_stage_not_invoked_when_output_is_valid(self, db_path: Path, data_dir: Path):
+    def test_stage_not_invoked_when_output_is_valid(
+        self, db_path: Path, data_dir: Path, stub_stages: list[str]
+    ):
         job = create_job(db_path, input_path="test.mp4")
         paths = JobPaths(job.id, data_dir=data_dir)
         paths.ensure_job_dir()
@@ -307,7 +323,9 @@ class TestConcurrentClaiming:
 
 
 class TestStaleJobRequeue:
-    def test_running_job_is_requeued_on_worker_startup(self, db_path: Path, data_dir: Path):
+    def test_running_job_is_requeued_on_worker_startup(
+        self, db_path: Path, data_dir: Path, stub_stages: list[str]
+    ):
         input_vid, _ = generate_synthetic_video(data_dir / "input", duration_s=2.0)
         job = create_job(db_path, input_path=str(input_vid))
 

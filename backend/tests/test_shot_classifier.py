@@ -17,6 +17,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pytest
 
 from reel.common.config import load_config
 from reel.common.models import Shot, read_model, write_model
@@ -125,6 +126,7 @@ class TestTraining:
         assert (preds[0] == preds[1]).all()
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestPipelineUsesClassifier:
     def _job(self, tmp: Path, models_dir: Path) -> PipelineContext:
         paths = JobPaths("job", data_dir=tmp / "data")

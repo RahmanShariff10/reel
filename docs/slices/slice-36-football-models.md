@@ -19,12 +19,12 @@ Replace the cricket models in `common/models.py` and `common/config.py` with tho
 This slice is expected to leave cricket-dependent modules and their tests broken until their replacement slices land. List them in the PR and skip those test files with a `reason` naming the slice that replaces them.
 
 ## Acceptance criteria
-- [ ] Given each new model, then it round-trips through `write_model` / `read_model`.
-- [ ] Given a `ScoreReading` with `home` of -1, then validation fails.
-- [ ] Given `Moment.minute` of `"45+2"` or null, then it validates.
-- [ ] Given an `Event` type of `"wicket"`, then validation fails.
-- [ ] Given `load_config()`, then every new threshold in ARCHITECTURE.md is present with its documented default.
-- [ ] Given the test suite, then only tests skipped with a named replacement slice are not run; everything else passes.
+- [x] Given each new model, then it round-trips through `write_model` / `read_model`.
+- [x] Given a `ScoreReading` with `home` of -1, then validation fails.
+- [x] Given `Moment.minute` of `"45+2"` or null, then it validates.
+- [x] Given an `Event` type of `"wicket"`, then validation fails.
+- [x] Given `load_config()`, then every new threshold in ARCHITECTURE.md is present with its documented default.
+- [x] Given the test suite, then only tests skipped with a named replacement slice are not run; everything else passes.
 
 ## Out of scope for this slice
 Any module logic.

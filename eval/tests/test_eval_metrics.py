@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 from reel.common.models import ClipBoundary, Delivery, Event, Summary, write_model
 from reel.common.paths import JobPaths
@@ -67,6 +68,7 @@ class TestE2:
         assert r.gap == -2 and r.precision == 1.0 and r.recall == (len(balls) - 2) / len(balls)
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 50")
 class TestE3:
     def test_late_clip_not_contained(self) -> None:
         r = e3_clips([ANN], [event("six", start=96.0, end=115.0)])
@@ -122,6 +124,7 @@ def write_manifest(tmp: Path) -> Path:
     return manifest
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 50")
 class TestReport:
     def test_aggregates_and_marks_targets(self, tmp_path: Path) -> None:
         build_job(tmp_path / "data", "j1")

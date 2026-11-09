@@ -19,6 +19,8 @@ from reel.common.config import load_config
 from reel.common.models import Delivery
 from reel.highlights.rating import rate
 
+pytestmark = pytest.mark.skip(reason="cricket code, replaced by slice 46")
+
 
 def d(
     i: int,

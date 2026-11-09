@@ -60,6 +60,7 @@ def make_job(tmp: Path, n_shots: int = 7, overrides: dict | None = None) -> Pipe
     return PipelineContext(job_id="job", db_path=tmp / "db", paths=paths, config=cfg)
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestStub:
     def test_labels_and_probabilities(self, tmp_path: Path) -> None:
         ctx = make_job(tmp_path)
@@ -94,6 +95,7 @@ class TestStub:
     not REPO_MODELS.is_dir() or not any(REPO_MODELS.iterdir()),
     reason="CLIP weights not downloaded to data/models",
 )
+@pytest.mark.skip(reason="cricket code, replaced by slice 42")
 class TestRealClipOffline:
     def test_runs_without_network(self, scanned_match: PipelineContext, monkeypatch) -> None:
         def no_network(*args, **kwargs):

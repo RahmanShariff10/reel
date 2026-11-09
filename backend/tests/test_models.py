@@ -1,4 +1,4 @@
-"""Tests for slice-02-common-models: Pydantic models, atomic IO, excitement CSV.
+"""Tests for slice-02-common-models and slice-36-football-models.
 
 Acceptance criteria:
 - Any model instance, when written with write_model and read back with read_model,
@@ -7,6 +7,7 @@ Acceptance criteria:
 - When file has invalid content, is_valid returns false (no exception).
 - Event serialized to JSON keys match ARCHITECTURE.md Event shape (including types).
 - excitement.csv helpers round-trip values with one row per second.
+- Football: home -1 fails; Moment.minute accepts "45+2" or null; Event type "wicket" fails.
 """
 
 from __future__ import annotations
@@ -15,15 +16,16 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from reel.common.models import (
     ClipBoundary,
-    Delivery,
     Event,
     EventType,
     ExcitementEntry,
-    InningsSummary,
+    HalfSummary,
     Meta,
+    Moment,
     Reason,
     ReelClip,
     ReelPlan,
@@ -64,9 +66,11 @@ class TestModelRoundTrip:
     def test_scorebox_roundtrip(self, tmp_path: Path):
         scorebox = Scorebox(
             found=True,
-            box=[100, 650, 350, 45],
+            box=[50, 30, 420, 54],
+            clock_box=[390, 30, 80, 54],
             confidence=0.96,
-            sample_reading="IND 145/3 16.2 ov",
+            sample_reading="ARS 1-0 CHE 34:12",
+            sample_time_s=2040.5,
             preview_url="/api/files/test-job/scorebox_preview.jpg",
         )
         p = write_model(tmp_path / "scorebox.json", scorebox)
@@ -87,8 +91,8 @@ class TestModelRoundTrip:
             end_s=125.5,
             duration_s=5.5,
             keyframe_path="keyframes/shot_0042.jpg",
-            label="run_up",
-            probabilities={"run_up": 0.88, "close_up": 0.05, "crowd": 0.02, "field": 0.05},
+            label="wide",
+            probabilities={"wide": 0.88, "close_up": 0.05, "crowd": 0.02, "medium": 0.05},
         )
         p = write_model(tmp_path / "shot.json", shot)
         loaded = read_model(p, Shot)
@@ -97,7 +101,7 @@ class TestModelRoundTrip:
     def test_shots_list_roundtrip(self, tmp_path: Path):
         shots = [
             Shot(id=0, start_s=0.0, end_s=3.0, label="graphic"),
-            Shot(id=1, start_s=3.0, end_s=8.5, label="run_up"),
+            Shot(id=1, start_s=3.0, end_s=8.5, label="wide"),
         ]
         p = write_model(tmp_path / "shots.json", shots)
         loaded = read_model(p, list[Shot])
@@ -106,10 +110,12 @@ class TestModelRoundTrip:
     def test_score_reading_roundtrip(self, tmp_path: Path):
         reading = ScoreReading(
             time_s=145.0,
-            raw_text="IND 145/3 16.2",
-            runs=145,
-            wickets=3,
-            overs=16.2,
+            raw_text="ARS 1-0 CHE 34:12",
+            home_code="ARS",
+            away_code="CHE",
+            home=1,
+            away=0,
+            clock_s=2052,
             confidence=0.92,
             visible=True,
         )
@@ -119,12 +125,7 @@ class TestModelRoundTrip:
 
     def test_score_timeline_entry_roundtrip(self, tmp_path: Path):
         entry = ScoreTimelineEntry(
-            time_s=145.0,
-            runs=145,
-            wickets=3,
-            overs=16.2,
-            visible=True,
-            innings=1,
+            time_s=145.0, home=1, away=0, visible=True, half=1, clock_s=2052, in_play=True
         )
         p = write_model(tmp_path / "timeline.json", entry)
         loaded = read_model(p, ScoreTimelineEntry)
@@ -132,55 +133,47 @@ class TestModelRoundTrip:
 
     def test_score_event_roundtrip(self, tmp_path: Path):
         event = ScoreEvent(
-            type="runs",
-            time_s=146.0,
-            runs_delta=6,
-            wicket_delta=0,
-            runs=151,
-            wickets=3,
-            overs=16.2,
-            innings=1,
+            type="goal", time_s=146.0, side="home", home=1, away=0, half=1, clock_s=2052
         )
         p = write_model(tmp_path / "score_event.json", event)
         loaded = read_model(p, ScoreEvent)
         assert loaded == event
 
-    def test_delivery_roundtrip(self, tmp_path: Path):
-        delivery = Delivery(
-            id="del-123",
-            innings=1,
-            over_ball="16.2",
-            start_s=140.0,
-            t_hit_s=144.5,
-            end_s=158.0,
-            runs_delta=6,
-            wicket=False,
-            overturned=False,
-            score_after="IND 151/3",
+    def test_moment_roundtrip(self, tmp_path: Path):
+        moment = Moment(
+            id="m-012",
+            half=2,
+            minute="67",
+            t_moment_s=4020.5,
+            play_start_s=4005.0,
+            sources=["goal", "audio", "replay"],
+            goal=True,
+            side="home",
+            score_after="ARS 2-1 CHE",
             replay_count=2,
             excitement_max=0.88,
         )
-        p = write_model(tmp_path / "delivery.json", delivery)
-        loaded = read_model(p, Delivery)
-        assert loaded == delivery
+        p = write_model(tmp_path / "moment.json", moment)
+        loaded = read_model(p, Moment)
+        assert loaded == moment
 
     def test_event_roundtrip(self, tmp_path: Path):
         event = Event(
             id="ev-01",
-            delivery_id="del-123",
-            type="six",
-            innings=1,
-            over_ball="16.2",
-            score_text="IND 151/3",
+            moment_id="m-012",
+            type="goal",
+            half=2,
+            minute="67",
+            score_text="ARS 2-1 CHE",
             importance=0.92,
             confidence=0.95,
             reasons=[
-                Reason(signal="score", value=6, label="score +6"),
-                Reason(signal="excitement", value=0.88, label="crowd excitement high"),
+                Reason(signal="score", value=1, label="score +1"),
+                Reason(signal="audio", value=0.88, label="crowd excitement high"),
                 Reason(signal="replays", value=2, label="2 replays"),
             ],
-            moment_s=144.5,
-            clip=ClipBoundary(start_s=138.5, end_s=156.5),
+            moment_s=4020.5,
+            clip=ClipBoundary(start_s=4000.5, end_s=4045.5),
         )
         p = write_model(tmp_path / "event.json", event)
         loaded = read_model(p, Event)
@@ -196,7 +189,7 @@ class TestModelRoundTrip:
                     start_s=138.5,
                     end_s=156.5,
                     duration_s=18.0,
-                    caption="SIX · 16.2 ov · IND 151/3",
+                    caption="GOAL · 67' · ARS 2-1 CHE",
                     offset_s=3.0,
                 ),
             ],
@@ -207,18 +200,55 @@ class TestModelRoundTrip:
 
     def test_summary_roundtrip(self, tmp_path: Path):
         summary = Summary(
-            teams=["IND", "AUS"],
-            innings=[
-                InningsSummary(innings=1, runs=185, wickets=6, overs=20.0, fours=14, sixes=8),
-                InningsSummary(innings=2, runs=180, wickets=9, overs=20.0, fours=16, sixes=5),
+            teams=["ARS", "CHE"],
+            final_score="ARS 2-1 CHE",
+            halves=[
+                HalfSummary(home_goals=1, away_goals=0),
+                HalfSummary(home_goals=1, away_goals=1),
             ],
-            deliveries_found=242,
+            moments_found=41,
             processing_s=1820.4,
             scorebox_found=True,
         )
         p = write_model(tmp_path / "summary.json", summary)
         loaded = read_model(p, Summary)
         assert loaded == summary
+
+
+class TestFootballValidation:
+    """Slice 36: football-specific validation."""
+
+    def test_negative_home_goals_rejected(self):
+        with pytest.raises(ValidationError):
+            ScoreReading(time_s=1.0, home=-1)
+
+    @pytest.mark.parametrize("minute", ["45+2", None])
+    def test_moment_minute(self, minute: str | None):
+        assert Moment(id="m", t_moment_s=1.0, play_start_s=0.0, minute=minute).minute == minute
+
+    def test_cricket_event_type_rejected(self):
+        with pytest.raises(ValidationError):
+            Event(
+                id="ev",
+                type="wicket",
+                importance=0.5,
+                confidence=0.5,
+                moment_s=1.0,
+                clip=ClipBoundary(start_s=0.0, end_s=2.0),
+            )
+
+    def test_cricket_shot_label_rejected(self):
+        with pytest.raises(ValidationError):
+            Shot(id=0, start_s=0.0, end_s=1.0, label="run_up")
+
+    def test_cricket_names_stay_importable_until_slice_49(self):
+        """Build order fix A: reel.jobs imports the cricket modules at load time."""
+        import importlib
+
+        from reel.common.models import Delivery, InningsSummary
+
+        assert importlib.import_module("reel.jobs") is not None
+        assert Delivery and InningsSummary
 
 
 class TestAtomicWriteFailure:
@@ -292,7 +322,9 @@ class TestValidationCheck:
 class TestEventSerializationShape:
     """AC: Event JSON keys match the Event shape in ARCHITECTURE.md."""
 
-    @pytest.mark.parametrize("event_type", ["wicket", "six", "four", "near_miss", "moment"])
+    @pytest.mark.parametrize(
+        "event_type", ["goal", "penalty", "red_card", "chance", "yellow_card", "moment"]
+    )
     def test_event_types_supported(self, event_type: EventType):
         event = Event(
             id=f"ev-{event_type}",
@@ -307,10 +339,10 @@ class TestEventSerializationShape:
 
         expected_keys = {
             "id",
-            "delivery_id",
+            "moment_id",
             "type",
-            "innings",
-            "over_ball",
+            "half",
+            "minute",
             "score_text",
             "importance",
             "confidence",

@@ -100,6 +100,7 @@ class TestValidationRules:
         assert short[0] >= 5.0 and short[-1] <= 95.0
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 39")
 class TestLocateSynthetic:
     def test_box_found_and_reading_matches(self, synthetic_match: SyntheticMatch,
                                            tmp_path: Path) -> None:
