@@ -14,12 +14,12 @@
 - reopening the URL later shows the current state.
 
 ## Acceptance criteria
-- [ ] Given a running job, then the page updates stage and progress at least every 2 s without reloading.
-- [ ] Given stage `scan`, then earlier stages show as done, `scan` as current, later ones as pending.
-- [ ] Given the job finishes, then polling stops and the done state is shown.
-- [ ] Given the job fails, then the error message and a "Back to upload" link are shown.
-- [ ] Given the page is closed and reopened, then it shows the job's current state.
-- [ ] Given the API is unreachable, then the page shows "Reconnecting…" and recovers when the API returns.
+- [x] Given a running job, then the page updates stage and progress at least every 2 s without reloading.
+- [x] Given stage `scan`, then earlier stages show as done, `scan` as current, later ones as pending.
+- [x] Given the job finishes, then polling stops and the done state is shown.
+- [x] Given the job fails, then the error message and a "Back to upload" link are shown.
+- [x] Given the page is closed and reopened, then it shows the job's current state.
+- [x] Given the API is unreachable, then the page shows "Reconnecting…" and recovers when the API returns.
 
 ## Mockup / reference
 ```

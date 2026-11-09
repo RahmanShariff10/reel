@@ -49,7 +49,7 @@ All of this can be done now, in this order.
 | 6 | [42 football-shots](slices/slice-42-football-shots.md) | shots | 36 | Final check only | `[~]` |
 | 7 | [05 api-core](slices/slice-05-api-core.md) | api | done slices only | No | `[x]` |
 | 8 | [06 frontend-scaffold](slices/slice-06-frontend-scaffold.md) | frontend | 05 | No | `[x]` |
-| 9 | [10 progress-page](slices/slice-10-progress-page.md) | frontend | 05, 06 | No | `[ ]` |
+| 9 | [10 progress-page](slices/slice-10-progress-page.md) | frontend | 05, 06 | No | `[x]` |
 
 Slice 36 needs agreement from both developers before it is merged.
 

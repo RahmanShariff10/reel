@@ -2,7 +2,9 @@
 
 import { useParams } from "next/navigation";
 
+import { JobProgress } from "@/components/job-progress";
+
 export function JobView() {
   const { id } = useParams<{ id: string }>();
-  return <p className="text-muted-foreground">Job {id}</p>;
+  return <JobProgress jobId={id} />;
 }
