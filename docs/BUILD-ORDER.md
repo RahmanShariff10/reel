@@ -137,6 +137,7 @@ These correct problems found by checking the slices against the code. They overr
 
 **D. Manual score box (slices 28 and 40).** A manually drawn box has no `clock_box`.
 - Slice 40 must accept `clock_box: null`: compare the whole crop, and leave `clock_s` null when the clock can't be read.
+- Slice 40 must not OCR a crop of only the clock. On the synthetic video, RapidOCR on a tightly padded clock crop split the digits (`45:03` came back as `45:0` and `3`). Read the clock from the whole score box or a generously padded crop, and test this with real OCR.
 - Slice 28 adds `source: "auto" | "manual"` to `Scorebox`, since the model doesn't have it.
 
 **E. Slice 49 also removes** the names and keys kept under fix A, the cricket `make_synthetic.py` and `test_synthetic_fixtures.py`, and the `reel.deliveries` entry in `test_config.py` (replace it with `reel.moments`). Update the fixture path in `docs/ARCHITECTURE.md`. `eval/` is already clean by then.
