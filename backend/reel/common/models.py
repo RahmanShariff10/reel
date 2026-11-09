@@ -69,9 +69,9 @@ class Scorebox(BaseModel):
         ge=0,
         description="Video time (seconds) of the frame the sample reading came from",
     )
-    order: Literal["runs-wickets", "wickets-runs"] | None = Field(
+    clock_box: list[int] | None = Field(
         default=None,
-        description="Order of the two score numbers on screen",
+        description="Bounding box [x, y, w, h] of the match clock in source video pixels",
     )
     preview_url: str | None = Field(
         default=None,
@@ -83,7 +83,7 @@ class Scorebox(BaseModel):
 # Stage 3 & 5: Scan & Classify Shots
 # ---------------------------------------------------------------------------
 
-ShotLabel = Literal["run_up", "close_up", "crowd", "field", "graphic"]
+ShotLabel = Literal["wide", "medium", "close_up", "crowd", "graphic"]
 
 
 class Shot(BaseModel):
@@ -129,28 +129,31 @@ class ScoreReading(BaseModel):
 
     time_s: float = Field(..., ge=0, description="Video timestamp in seconds")
     raw_text: str = Field(default="", description="Raw OCR recognised text")
-    team: str | None = Field(default=None, description="Team abbreviation shown, e.g. 'IND'")
-    runs: int | None = Field(default=None, ge=0, description="Parsed runs total")
-    wickets: int | None = Field(default=None, ge=0, le=10, description="Parsed wickets lost")
-    overs: float | None = Field(default=None, ge=0, description="Parsed overs bowled")
+    home_code: str | None = Field(default=None, description="Home team code, e.g. 'ARS'")
+    away_code: str | None = Field(default=None, description="Away team code, e.g. 'CHE'")
+    home: int | None = Field(default=None, ge=0, description="Parsed home goals")
+    away: int | None = Field(default=None, ge=0, description="Parsed away goals")
+    clock_s: int | None = Field(default=None, ge=0, description="Match clock in seconds")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="OCR confidence score")
-    visible: bool = Field(default=True, description="Whether score box is visible in this frame")
+    visible: bool = Field(default=True, description="Whether the score graphic is visible")
 
 
 class ScoreTimelineEntry(BaseModel):
-    """Validated match state at a given second (element of score_timeline.json)."""
+    """Validated match state at a given time (element of score_timeline.json)."""
 
     model_config = ConfigDict(extra="ignore")
 
     time_s: float = Field(..., ge=0, description="Timestamp in seconds")
-    runs: int = Field(0, ge=0, description="Validated match runs")
-    wickets: int = Field(0, ge=0, le=10, description="Validated match wickets")
-    overs: float = Field(0.0, ge=0.0, description="Validated overs bowled")
+    home: int = Field(0, ge=0, description="Validated home goals")
+    away: int = Field(0, ge=0, description="Validated away goals")
     visible: bool = Field(default=True, description="Score graphic visibility")
-    innings: int = Field(default=1, ge=1, le=2, description="Innings number (1 or 2)")
+    half: int = Field(default=1, ge=1, description="Half number")
+    clock_s: int | None = Field(default=None, ge=0, description="Match clock in seconds")
+    in_play: bool = Field(default=False, description="Whether this time is within a half")
 
 
-ScoreEventType = Literal["runs", "wicket", "wicket_overturned", "innings_start"]
+ScoreEventType = Literal["goal", "goal_overturned", "half_start"]
+TeamSide = Literal["home", "away"]
 
 
 class ScoreEvent(BaseModel):
@@ -159,14 +162,13 @@ class ScoreEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     type: ScoreEventType = Field(..., description="Event type emitted")
-    time_s: float = Field(..., ge=0, description="Timestamp in seconds")
-    runs_delta: int = Field(default=0, description="Change in runs (e.g. 4, 6)")
-    wicket_delta: int = Field(default=0, description="Change in wickets (+1 or -1)")
-    runs: int | None = Field(default=None, ge=0, description="Total runs after event")
-    wickets: int | None = Field(default=None, ge=0, le=10, description="Total wickets after event")
-    overs: float | None = Field(default=None, ge=0.0, description="Overs after event")
-    innings: int = Field(default=1, ge=1, le=2, description="Innings number")
-    overturned: bool = Field(default=False, description="Wicket later overturned on review")
+    time_s: float = Field(..., ge=0, description="Time the score graphic changed, in seconds")
+    side: TeamSide | None = Field(default=None, description="Side the event applies to")
+    home: int = Field(default=0, ge=0, description="Home goals after the event")
+    away: int = Field(default=0, ge=0, description="Away goals after the event")
+    half: int = Field(default=1, ge=1, description="Half number")
+    clock_s: int | None = Field(default=None, ge=0, description="Match clock in seconds")
+    overturned: bool = Field(default=False, description="Goal later overturned on review")
 
 
 # ---------------------------------------------------------------------------
@@ -189,12 +191,35 @@ class ExcitementEntry(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Stage 7: Deliveries
+# Stage 7: Moments
 # ---------------------------------------------------------------------------
+
+MomentSource = Literal["goal", "audio", "replay"]
+
+
+class Moment(BaseModel):
+    """A candidate highlight moment (element of moments.json)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(..., description="Unique moment identifier")
+    half: int = Field(default=1, ge=1, description="Half number")
+    minute: str | None = Field(default=None, description="Match minute, e.g. '67' or '45+2'")
+    t_moment_s: float = Field(..., ge=0, description="Time of the moment in seconds")
+    play_start_s: float = Field(..., ge=0, description="Start of the play leading to it")
+    sources: list[MomentSource] = Field(default_factory=list, description="Signals behind it")
+    goal: bool = Field(default=False, description="Whether this moment is a goal")
+    side: TeamSide | None = Field(default=None, description="Scoring side for a goal")
+    overturned: bool = Field(default=False, description="Goal overturned on review")
+    score_after: str | None = Field(default=None, description="Score text, e.g. 'ARS 2-1 CHE'")
+    replay_count: int = Field(default=0, ge=0, description="Replays shown after the moment")
+    excitement_max: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Peak crowd excitement around the moment"
+    )
 
 
 class Delivery(BaseModel):
-    """A detected ball delivery segment (element of deliveries.json)."""
+    """Deprecated cricket model, kept so cricket modules still import until slice 49."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -251,7 +276,7 @@ class ClipBoundary(BaseModel):
     end_s: float = Field(..., ge=0, description="Clip end timestamp in seconds")
 
 
-EventType = Literal["wicket", "six", "four", "near_miss", "moment"]
+EventType = Literal["goal", "penalty", "red_card", "chance", "yellow_card", "moment"]
 
 
 class Event(BaseModel):
@@ -260,17 +285,17 @@ class Event(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: str = Field(..., description="Unique event identifier (e.g. 'ev-01')")
-    delivery_id: str | int | None = Field(default=None, description="Linked delivery identifier")
+    moment_id: str | None = Field(default=None, description="Linked moment identifier")
     type: EventType = Field(..., description="Event type")
-    innings: int | None = Field(default=None, ge=1, le=2, description="Innings number")
-    over_ball: str | None = Field(default=None, description="Over and ball string (e.g. '16.2')")
+    half: int | None = Field(default=None, ge=1, description="Half number")
+    minute: str | None = Field(default=None, description="Match minute, e.g. '67' or '45+2'")
     score_text: str | None = Field(default=None, description="Score display text")
     importance: float = Field(..., ge=0.0, le=1.0, description="Computed importance score")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence score")
     reasons: list[Reason] = Field(default_factory=list, description="List of reasons for rating")
     moment_s: float = Field(..., ge=0, description="Timestamp of the key moment in seconds")
     clip: ClipBoundary = Field(..., description="Computed clip boundaries")
-    overturned: bool = Field(default=False, description="Wicket overturned on review")
+    overturned: bool = Field(default=False, description="Goal overturned on review")
 
 
 class ReelClip(BaseModel):
@@ -302,7 +327,7 @@ class ReelPlan(BaseModel):
 
 
 class InningsSummary(BaseModel):
-    """Per-innings match statistics."""
+    """Deprecated cricket model, kept so cricket modules still import until slice 49."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -313,14 +338,24 @@ class InningsSummary(BaseModel):
     sixes: int = Field(default=0, ge=0)
 
 
+class HalfSummary(BaseModel):
+    """Goals scored by each side in one half."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    home_goals: int = Field(default=0, ge=0)
+    away_goals: int = Field(default=0, ge=0)
+
+
 class Summary(BaseModel):
     """High-level summary of processed match (written to summary.json)."""
 
     model_config = ConfigDict(extra="ignore")
 
     teams: list[str] | None = Field(default=None, description="Team names if detected")
-    innings: list[InningsSummary] = Field(default_factory=list, description="Per-innings stats")
-    deliveries_found: int = Field(default=0, ge=0, description="Total deliveries detected")
+    final_score: str | None = Field(default=None, description="Final score, e.g. 'ARS 2-1 CHE'")
+    halves: list[HalfSummary] = Field(default_factory=list, description="Goals per half")
+    moments_found: int = Field(default=0, ge=0, description="Total moments detected")
     processing_s: float = Field(default=0.0, ge=0, description="Total pipeline run time in seconds")
     scorebox_found: bool = Field(default=False, description="Whether score box was located")
     stage_timings: dict[str, float] = Field(

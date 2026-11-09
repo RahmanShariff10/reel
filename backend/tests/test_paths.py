@@ -1,4 +1,4 @@
-"""Tests for slice-02-common-models: JobPaths resolution against ARCHITECTURE.md.
+"""Tests for slice-02-common-models and slice-36: JobPaths resolution against ARCHITECTURE.md.
 
 Acceptance criterion:
 - Given ARCHITECTURE.md's job directory list, when checking JobPaths,
@@ -64,18 +64,25 @@ class TestJobPathsArchitectureList:
         assert paths.excitement_csv.name == "excitement.csv"
         assert paths.excitement.name == "excitement.csv"
 
-    def test_stage_7_deliveries_paths(self, paths: JobPaths):
-        assert paths.deliveries_json.name == "deliveries.json"
-        assert paths.deliveries.name == "deliveries.json"
+    def test_stage_7_moments_paths(self, paths: JobPaths):
+        assert paths.moments_json.name == "moments.json"
+        assert paths.moments.name == "moments.json"
 
-    def test_stage_8_highlights_paths(self, paths: JobPaths):
+    def test_stage_8_commentary_paths(self, paths: JobPaths):
+        assert paths.commentary_json.name == "commentary.json"
+        assert paths.commentary.name == "commentary.json"
+
+    def test_deprecated_deliveries_path_kept_until_slice_49(self, paths: JobPaths):
+        assert paths.deliveries_json.name == "deliveries.json"
+
+    def test_stage_9_highlights_paths(self, paths: JobPaths):
         assert paths.events_json.name == "events.json"
         assert paths.events.name == "events.json"
         assert paths.reel_plan.name == "reel_plan_5min.json"
         assert paths.reel_plan_path("3min").name == "reel_plan_3min.json"
         assert paths.reel_plan_json("10min").name == "reel_plan_10min.json"
 
-    def test_stage_9_render_paths(self, paths: JobPaths):
+    def test_stage_10_render_paths(self, paths: JobPaths):
         assert paths.clips_dir.name == "clips"
         assert paths.clips.name == "clips"
         assert paths.reel.name == "reel_5min.mp4"
@@ -89,8 +96,9 @@ class TestJobPathsArchitectureList:
         """ARCHITECTURE.md job directory items:
         meta.json, audio.wav, scorebox.json, scorebox_preview.jpg, shots.json,
         keyframes, score_crops, score_readings.json, score_timeline.json,
-        score_events.json, shot_embeddings.npy, excitement.csv, deliveries.json,
-        events.json, reel_plan_<mode>.json, clips, reel_<mode>.mp4, title.png, summary.json
+        score_events.json, shot_embeddings.npy, excitement.csv, moments.json,
+        commentary.json, events.json, reel_plan_<mode>.json, clips, reel_<mode>.mp4,
+        title.png, summary.json
         """
         arch_items = [
             "meta.json",
@@ -105,7 +113,8 @@ class TestJobPathsArchitectureList:
             "score_events.json",
             "shot_embeddings.npy",
             "excitement.csv",
-            "deliveries.json",
+            "moments.json",
+            "commentary.json",
             "events.json",
             "clips",
             "title.png",

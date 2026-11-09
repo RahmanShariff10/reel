@@ -32,6 +32,9 @@ from reel.jobs.pipeline import PipelineContext
 from reel.scoreboard.score_stage import is_valid_read_score, run_read_score
 from reel.scoreboard.state import build_timeline
 
+pytestmark = pytest.mark.skip(reason="cricket code, replaced by slice 41")
+
+
 CFG = ScoreboardConfig()
 EXPECTED_TYPE = {
     "runs": "runs",

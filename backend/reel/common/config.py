@@ -40,6 +40,16 @@ class ScoreboardConfig(BaseModel):
     max_run_jump: int = Field(13, gt=0)
     drs_window_s: float = Field(120.0, gt=0)
     new_innings_max_runs: int = Field(12, ge=0)
+    # Football (the cricket-only keys above go in slice 49)
+    clock_rate_min: float = Field(0.9, gt=0)
+    clock_rate_max: float = Field(1.1, gt=0)
+    clock_linear_ratio: float = Field(0.7, gt=0, le=1)
+    clock_change_ratio: float = Field(0.8, gt=0, le=1)
+    score_max: int = Field(15, gt=0)
+    clock_read_s: float = Field(30.0, gt=0)
+    score_confirm: int = Field(3, gt=0)
+    goal_overturn_window_s: float = Field(300.0, gt=0)
+    half_gap_s: float = Field(300.0, gt=0)
 
 
 class ScanConfig(BaseModel):
@@ -91,28 +101,96 @@ class AudioConfig(BaseModel):
     mad_floor_db: float = Field(1.0, gt=0)
 
 
+class MomentsConfig(BaseModel):
+    merge_window_s: float = Field(25.0, ge=0)
+    goal_lookback_s: float = Field(90.0, ge=0)
+    default_goal_lag_s: float = Field(20.0, ge=0)
+    peak_smooth_s: float = Field(3.0, gt=0)
+    peak_prominence: float = Field(0.2, ge=0, le=1)
+    peak_min_gap_s: float = Field(30.0, ge=0)
+    replay_min_s: float = Field(3.0, ge=0)
+    replay_lookback_s: float = Field(30.0, ge=0)
+    replay_count_window_s: float = Field(60.0, ge=0)
+
+
+DEFAULT_COMMENTARY_KEYWORDS: dict[str, list[str]] = {
+    "penalty": ["penalty", "spot kick"],
+    "red_card": ["red card", "sent off"],
+    "chance": [
+        "what a save",
+        "great save",
+        "off the post",
+        "hits the bar",
+        "crossbar",
+        "so close",
+        "just wide",
+    ],
+    "yellow_card": ["yellow card", "booked"],
+}
+
+
+class CommentaryConfig(BaseModel):
+    whisper_model: str = "small"
+    compute_type: str = "int8"
+    window_pre_s: float = Field(8.0, ge=0)
+    window_post_s: float = Field(12.0, ge=0)
+    commentary_top_k: int = Field(60, ge=0)
+    language_check_windows: int = Field(5, gt=0)
+    keywords: dict[str, list[str]] = Field(
+        default_factory=lambda: dict(DEFAULT_COMMENTARY_KEYWORDS)
+    )
+    precedence: list[str] = ["goal", "penalty", "red_card", "chance", "yellow_card"]
+
+
 class DeliveriesConfig(BaseModel):
+    """Deprecated cricket settings, kept until slice 49."""
+
     max_merge_gap_s: float = Field(3.0, ge=0)
     last_delivery_s: float = Field(60.0, gt=0)
 
 
 class BaseImportanceConfig(BaseModel):
+    goal: float = 1.0
+    penalty: float = 0.85
+    red_card: float = 0.85
+    chance: float = 0.65
+    yellow_card: float = 0.3
+    # Cricket-only values below go in slice 49
     wicket: float = 1.0
     six: float = 0.85
     four: float = 0.7
     near_miss: float = 0.5
     moment_low: float = 0.4
-    moment_high: float = 0.8
+    moment_high: float = 0.7
 
 
 class BonusConfig(BaseModel):
     excitement_max: float = Field(0.2, ge=0)
     replay_per: float = Field(0.05, ge=0)
     replay_cap: float = Field(0.15, ge=0)
-    late_overs: float = Field(0.1, ge=0)
+    late_game: float = Field(0.1, ge=0)
+    commentary: float = Field(0.1, ge=0)
+    late_overs: float = Field(0.1, ge=0)  # cricket-only, goes in slice 49
+
+
+class ClipRule(BaseModel):
+    pre_s: float = Field(..., ge=0)
+    post_s: float = Field(..., ge=0)
+    cap_s: float = Field(..., gt=0)
+
+
+class ClipRulesConfig(BaseModel):
+    goal: ClipRule = ClipRule(pre_s=20.0, post_s=25.0, cap_s=45.0)
+    penalty: ClipRule = ClipRule(pre_s=20.0, post_s=20.0, cap_s=30.0)
+    chance: ClipRule = ClipRule(pre_s=12.0, post_s=10.0, cap_s=25.0)
+    red_card: ClipRule = ClipRule(pre_s=10.0, post_s=12.0, cap_s=25.0)
+    yellow_card: ClipRule = ClipRule(pre_s=10.0, post_s=12.0, cap_s=25.0)
+    moment: ClipRule = ClipRule(pre_s=12.0, post_s=10.0, cap_s=25.0)
 
 
 class ClipConfig(BaseModel):
+    """Deprecated cricket clip settings, kept until slice 49."""
+
     pre_hit_s: float = Field(6.0, ge=0)
     post_hit_boundary_s: float = Field(12.0, ge=0)
     post_hit_wicket_s: float = Field(20.0, ge=0)
@@ -124,9 +202,12 @@ class ClipConfig(BaseModel):
 class HighlightsConfig(BaseModel):
     base_importance: BaseImportanceConfig = BaseImportanceConfig()
     bonus: BonusConfig = BonusConfig()
+    clips: ClipRulesConfig = ClipRulesConfig()
     clip: ClipConfig = ClipConfig()
     moment_min_excitement: float = Field(0.6, ge=0, le=1)
     title_card_s: float = Field(3.0, ge=0)
+    late_minute_from: int = Field(80, ge=0)
+    late_goal_margin: int = Field(1, ge=0)
     late_overs_from: float = Field(17.0, ge=0)
     close_chase_runs: int = Field(30, ge=0)
     modes: list[str] = ["3min", "5min", "10min", "all"]
@@ -157,6 +238,7 @@ class SignalsConfig(BaseModel):
     shots: bool = True
     audio: bool = True
     replays: bool = True
+    commentary: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -175,6 +257,8 @@ class ReelConfig(BaseModel):
     scan: ScanConfig = ScanConfig()
     shots: ShotsConfig = ShotsConfig()
     audio: AudioConfig = AudioConfig()
+    moments: MomentsConfig = MomentsConfig()
+    commentary: CommentaryConfig = CommentaryConfig()
     deliveries: DeliveriesConfig = DeliveriesConfig()
     highlights: HighlightsConfig = HighlightsConfig()
     render: RenderConfig = RenderConfig()

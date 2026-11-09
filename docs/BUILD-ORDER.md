@@ -42,7 +42,7 @@ All of this can be done now, in this order.
 | Step | Slice | Module | Depends on | Real footage? | Status |
 |---|---|---|---|---|---|
 | 1 | [35 soccernet-loader](slices/slice-35-soccernet-loader.md) | eval | — | No | `[x]` |
-| 2 | [36 football-models](slices/slice-36-football-models.md) (see fix A) | common | — | No | `[ ]` |
+| 2 | [36 football-models](slices/slice-36-football-models.md) (see fix A) | common | — | No | `[x]` |
 | 3 | [37 football-fixtures](slices/slice-37-football-fixtures.md) (see fix B) | tests | 36 | No | `[ ]` |
 | 4 | [38 real-match-check](slices/slice-38-real-match-check.md), **script and synthetic tests only** | eval | 35, 37 | Script no; running it yes (G1) | `[ ]` |
 | 5 | [50 football-metrics](slices/slice-50-football-metrics.md) (see fix C) | eval | 35, 36 | No | `[ ]` |

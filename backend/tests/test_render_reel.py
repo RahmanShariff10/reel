@@ -154,6 +154,7 @@ class TestReel:
         data = out.read_bytes()
         assert data.find(b"moov") < data.find(b"mdat")
 
+    @pytest.mark.skip(reason="cricket code, replaced by slice 48")
     def test_summary_and_validity(self, job: PipelineContext) -> None:
         summary = read_model(job.paths.summary_json, Summary)
         assert summary.teams == ["IND", "AUS"] and summary.deliveries_found == 2

@@ -35,6 +35,8 @@ from reel.jobs.store import create_job, create_reel_request, get_job, get_reel, 
 from reel.jobs.worker import Worker
 from tests.conftest import SyntheticMatch, make_synthetic_match
 
+pytestmark = pytest.mark.skip(reason="cricket code, replaced by slice 49")
+
 
 def schedule_labeller(schedule: dict):
     def run(ctx, progress_cb=None):

@@ -22,6 +22,8 @@ from reel.jobs.pipeline import PipelineContext
 from reel.scoreboard.score_stage import run_read_score
 from tests.conftest import SyntheticMatch
 
+pytestmark = pytest.mark.skip(reason="cricket code, replaced by slice 44")
+
 
 def label_from_schedule(ctx: PipelineContext, schedule: dict) -> None:
     shots = read_model(ctx.paths.shots_json, list[Shot])

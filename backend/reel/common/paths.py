@@ -154,7 +154,17 @@ class JobPaths:
     def excitement(self) -> Path:
         return self.excitement_csv
 
-    # ---- Stage 7: Deliveries ----
+    # ---- Stage 7: Moments ----
+
+    @property
+    def moments_json(self) -> Path:
+        return self._root / "moments.json"
+
+    @property
+    def moments(self) -> Path:
+        return self.moments_json
+
+    # Deprecated: cricket stage file, kept until slice 49.
 
     @property
     def deliveries_json(self) -> Path:
@@ -164,7 +174,17 @@ class JobPaths:
     def deliveries(self) -> Path:
         return self.deliveries_json
 
-    # ---- Stage 8: Highlights & Events ----
+    # ---- Stage 8: Commentary ----
+
+    @property
+    def commentary_json(self) -> Path:
+        return self._root / "commentary.json"
+
+    @property
+    def commentary(self) -> Path:
+        return self.commentary_json
+
+    # ---- Stage 9: Highlights & Events ----
 
     @property
     def events_json(self) -> Path:
@@ -187,7 +207,7 @@ class JobPaths:
         """Default (5min) reel plan file."""
         return self.reel_plan_path("5min")
 
-    # ---- Stage 9: Render & Summary ----
+    # ---- Stage 10: Render & Summary ----
 
     @property
     def clips_dir(self) -> Path:

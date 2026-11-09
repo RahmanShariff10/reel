@@ -118,6 +118,7 @@ class TestAnnotations:
         assert annotations.main([str(good)]) == 0
 
 
+@pytest.mark.skip(reason="cricket code, replaced by slice 50")
 class TestE1:
     def test_perfect_predictions(self, balls: list[Ball]) -> None:
         scores = e1.score(e1.detected_events(events_from_truth(balls)), balls)

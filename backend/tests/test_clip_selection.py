@@ -20,6 +20,9 @@ from reel.common.models import ClipBoundary, Delivery, Event
 from reel.highlights.rating import rate
 from reel.highlights.select import add_clips, caption, clip_for, mode_target_s, plan_reel
 
+pytestmark = pytest.mark.skip(reason="cricket code, replaced by slice 47")
+
+
 CFG = load_config()
 
 
