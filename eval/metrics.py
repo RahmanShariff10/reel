@@ -1,135 +1,189 @@
-"""E2 (delivery detection), E3 (clip accuracy) and runtime metrics."""
+"""Evaluation metrics against SoccerNet labels (definitions in ARCHITECTURE.md).
+
+E0 score graphic found, E1 goals, E2 key actions, E3 goal clips, E5 reel quality and
+runtime. E4 (ablation) is in slice 26.
+"""
 
 from __future__ import annotations
 
-import statistics
-from dataclasses import dataclass, field
+import random
+from collections.abc import Sequence
+from dataclasses import dataclass
 
-from reel.common.models import Delivery, Event, Summary
+from reel.common.models import Event, ReelPlan, ScoreTimelineEntry
 
-from eval.annotations import Annotation
-from eval.cricsheet import Ball
+from eval.soccernet import KEY_ACTIONS, Label, to_match_time
 
-POST_MOMENT_S = 3.0  # a clip must run at least this long after the moment
-START_TOLERANCE_S = 0.0  # a clip may start at most this late after the run-up starts
-MATCH_WINDOW_S = 20.0  # fallback: event moment within this of the annotated moment
+GOAL_WINDOW_S = 30.0
+KEY_ACTION_WINDOW_S = 15.0
+CLIP_MARGIN_S = 3.0
+RANDOM_DRAWS = 20
+RANDOM_SEED = 42
+ALL_MODE_TYPES = {"goal", "penalty", "red_card", "chance"}
 
-
-def _legal(over_ball: str | None) -> int | None:
-    if not over_ball:
-        return None
-    try:
-        over, ball = over_ball.split(".")
-        return int(over) * 6 + int(ball)
-    except ValueError:
-        return None
+Interval = tuple[float, float]
 
 
-@dataclass
-class E2:
-    detected: int
-    truth: int
-    matched: int
-
-    @property
-    def recall(self) -> float:
-        return self.matched / self.truth if self.truth else 1.0
-
-    @property
-    def precision(self) -> float:
-        return self.matched / self.detected if self.detected else 1.0
-
-    @property
-    def gap(self) -> int:
-        return self.detected - self.truth
+def goal_times(labels: Sequence[Label], first_half_s: float) -> list[float]:
+    """Times of ``Goal`` labels in the joined match file, in order."""
+    return sorted(to_match_time(lab, first_half_s) for lab in labels if lab.label == "Goal")
 
 
-def e2_deliveries(deliveries: list[Delivery], balls: list[Ball]) -> E2:
-    """Match deliveries to Cricsheet balls by innings + overs, then by order."""
-    matched = 0
-    for innings in (1, 2):
-        truth = sorted(
-            (b for b in balls if b.innings == innings), key=lambda b: b.legal_balls_after
-        )
-        used = [False] * len(truth)
-        ours = sorted((d for d in deliveries if d.innings == innings), key=lambda d: d.start_s)
-        unreadable = []
-        for d in ours:
-            key = _legal(d.over_ball)
-            if key is None:
-                unreadable.append(d)
-                continue
-            cands = [i for i, b in enumerate(truth) if not used[i] and b.legal_balls_after == key]
-            if cands:
-                legal_first = sorted(cands, key=lambda i: not truth[i].legal)
-                used[legal_first[0]] = True
-                matched += 1
-            else:
-                unreadable.append(d)
-        free = used.count(False)
-        matched += min(len(unreadable), free)  # by order: each leftover takes a free ball
-    return E2(detected=len(deliveries), truth=len(balls), matched=matched)
+def key_action_times(labels: Sequence[Label], first_half_s: float) -> list[float]:
+    """Times of key-action labels in the joined match file, in order."""
+    return sorted(to_match_time(lab, first_half_s) for lab in labels if lab.label in KEY_ACTIONS)
 
 
 @dataclass
-class E3:
-    total: int = 0
-    contained: int = 0
-    offsets: list[float] = field(default_factory=list)  # clip start - annotated start (s)
-    missing: list[str] = field(default_factory=list)
+class Detection:
+    """Counts for matching detected events to labels."""
+
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
 
     @property
-    def contained_ratio(self) -> float:
-        return self.contained / self.total if self.total else 1.0
+    def precision(self) -> float | None:
+        return self.tp / (self.tp + self.fp) if self.tp + self.fp else None
 
     @property
-    def median_offset(self) -> float | None:
-        return round(statistics.median(self.offsets), 3) if self.offsets else None
-
-    @property
-    def p90_offset(self) -> float | None:
-        if not self.offsets:
-            return None
-        ordered = sorted(self.offsets)
-        return round(ordered[min(len(ordered) - 1, int(0.9 * len(ordered)))], 3)
+    def recall(self) -> float | None:
+        return self.tp / (self.tp + self.fn) if self.tp + self.fn else None
 
 
-def _find_event(a: Annotation, events: list[Event]) -> Event | None:
-    exact = [
-        e
-        for e in events
-        if e.type == a.type and e.innings == a.innings and e.over_ball == a.over_ball
-    ]
-    if exact:
-        return exact[0]
-    near = [
-        e for e in events if e.type == a.type and abs(e.moment_s - a.t_moment_s) <= MATCH_WINDOW_S
-    ]
-    return min(near, key=lambda e: abs(e.moment_s - a.t_moment_s)) if near else None
+def _real_goals(events: Sequence[Event]) -> list[Event]:
+    return [e for e in events if e.type == "goal" and not e.overturned]
 
 
-def e3_clips(
-    annotations: list[Annotation],
-    events: list[Event],
-    post_moment_s: float = POST_MOMENT_S,
-    start_tolerance_s: float = START_TOLERANCE_S,
-) -> E3:
-    """Share of annotated boundaries/wickets whose clip contains the whole moment."""
-    result = E3()
-    for a in annotations:
-        if a.type not in ("four", "six", "wicket"):
-            continue
-        result.total += 1
-        e = _find_event(a, events)
-        if e is None:
-            result.missing.append(f"{a.innings}:{a.over_ball} {a.type}")
-            continue
-        offset = e.clip.start_s - a.t_start_s
-        result.offsets.append(round(offset, 3))
-        if offset <= start_tolerance_s and e.clip.end_s >= a.t_moment_s + post_moment_s:
-            result.contained += 1
+def e1_goals(
+    events: Sequence[Event], goals: Sequence[float], window_s: float = GOAL_WINDOW_S
+) -> Detection:
+    """Match each detected goal to the nearest unused goal label within the window."""
+    used = [False] * len(goals)
+    result = Detection()
+    for event in sorted(_real_goals(events), key=lambda e: e.moment_s):
+        best, best_dist = None, None
+        for i, t in enumerate(goals):
+            dist = abs(event.moment_s - t)
+            if not used[i] and dist <= window_s and (best_dist is None or dist < best_dist):
+                best, best_dist = i, dist
+        if best is None:
+            result.fp += 1
+        else:
+            used[best] = True
+            result.tp += 1
+    result.fn = used.count(False)
     return result
 
 
-def runtime(summary: Summary) -> dict:
-    return {"processing_s": summary.processing_s, "stages": dict(summary.stage_timings)}
+@dataclass
+class Coverage:
+    """How many labelled things were covered."""
+
+    found: int = 0
+    total: int = 0
+
+    @property
+    def ratio(self) -> float | None:
+        return self.found / self.total if self.total else None
+
+
+def all_mode_events(events: Sequence[Event], scorebox_found: bool = True) -> list[Event]:
+    """Events eligible for the ``all`` reel, following the selection rule."""
+    types = ALL_MODE_TYPES if scorebox_found else ALL_MODE_TYPES | {"moment"}
+    return [e for e in events if e.type in types and not e.overturned]
+
+
+def e2_key_actions(
+    events: Sequence[Event],
+    actions: Sequence[float],
+    scorebox_found: bool = True,
+    window_s: float = KEY_ACTION_WINDOW_S,
+) -> Coverage:
+    """Share of key actions with an ``all``-mode event within the window."""
+    eligible = [e.moment_s for e in all_mode_events(events, scorebox_found)]
+    found = sum(any(abs(m - t) <= window_s for m in eligible) for t in actions)
+    return Coverage(found=found, total=len(actions))
+
+
+def e3_goal_clips(
+    events: Sequence[Event], goals: Sequence[float], margin_s: float = CLIP_MARGIN_S
+) -> Coverage:
+    """Share of goal labels with a goal clip covering label - margin to label + margin."""
+    clips = [e.clip for e in _real_goals(events)]
+
+    def covered(t: float) -> bool:
+        return any(c.start_s <= t - margin_s and c.end_s >= t + margin_s for c in clips)
+
+    return Coverage(found=sum(covered(t) for t in goals), total=len(goals))
+
+
+def in_play_intervals(
+    timeline: Sequence[ScoreTimelineEntry], duration_s: float
+) -> list[Interval]:
+    """Continuous in-play stretches; the whole video when the timeline has none."""
+    intervals: list[Interval] = []
+    start: float | None = None
+    last = 0.0
+    for entry in sorted(timeline, key=lambda e: e.time_s):
+        if entry.in_play and start is None:
+            start = entry.time_s
+        elif not entry.in_play and start is not None:
+            intervals.append((start, entry.time_s))
+            start = None
+        last = entry.time_s
+    if start is not None:
+        intervals.append((start, last))
+    return intervals or [(0.0, duration_s)]
+
+
+def _contains_action(start: float, end: float, actions: Sequence[float]) -> bool:
+    return any(start <= t <= end for t in actions)
+
+
+def _random_share(
+    lengths: Sequence[float],
+    actions: Sequence[float],
+    intervals: Sequence[Interval],
+    rng: random.Random,
+) -> float:
+    hits = 0
+    for length in lengths:
+        room = [(a, b - length) for a, b in intervals if b - length > a]
+        if not room:
+            continue
+        a, latest = rng.choices(room, weights=[b - a for a, b in room])[0]
+        start = rng.uniform(a, latest)
+        hits += _contains_action(start, start + length, actions)
+    return hits / len(lengths)
+
+
+@dataclass
+class ReelQuality:
+    clips: int = 0
+    with_action: int = 0
+    random_share: float | None = None
+
+    @property
+    def share(self) -> float | None:
+        return self.with_action / self.clips if self.clips else None
+
+
+def e5_reel_quality(
+    plan: ReelPlan,
+    actions: Sequence[float],
+    intervals: Sequence[Interval],
+    seed: int = RANDOM_SEED,
+    draws: int = RANDOM_DRAWS,
+) -> ReelQuality:
+    """Share of reel clips containing a key action, against random clips of the same lengths."""
+    if not plan.clips:
+        return ReelQuality()
+    lengths = [c.end_s - c.start_s for c in plan.clips]
+    rng = random.Random(seed)
+    baseline = sum(_random_share(lengths, actions, intervals, rng) for _ in range(draws)) / draws
+    return ReelQuality(
+        clips=len(plan.clips),
+        with_action=sum(_contains_action(c.start_s, c.end_s, actions) for c in plan.clips),
+        random_share=baseline,
+    )
