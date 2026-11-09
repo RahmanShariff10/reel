@@ -1,5 +1,7 @@
 # Slice 18 — Highlight rating
 
+> **Replaced by slice 46** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 04 · **Target week:** 8 · **Depends on:** 17
 
 ## Module

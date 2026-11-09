@@ -1,5 +1,7 @@
 # Slice 12 — Match-state machine
 
+> **Replaced by slice 41** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 03 · **Target week:** 5–6 · **Depends on:** 11
 
 ## Module

@@ -1,6 +1,6 @@
 # Slice 34 — Setup docs and demo script
 
-**Owner:** Dev A + Dev B · **Sprint:** 08 · **Target week:** 14–15 · **Depends on:** all core slices
+**Owner:** Dev A + Dev B · **Sprint:** F6 · **Target week:** 13–14 · **Depends on:** all core slices
 
 ## Module
 Docs (`README.md`, `docs/demo.md`)

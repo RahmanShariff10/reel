@@ -1,6 +1,6 @@
 # Slice 06 — Frontend scaffold and upload page
 
-**Owner:** Dev B · **Sprint:** 01 · **Target week:** 2 · **Depends on:** 05 (can start against the API contract with mocks)
+**Owner:** Dev B · **Sprint:** F4 · **Target week:** 7 · **Depends on:** 05 (can start against the API contract with mocks)
 
 ## Module
 `frontend`
@@ -29,7 +29,7 @@
 ┌────────────────────────────────────────────┐
 │ Reel                                       │
 ├────────────────────────────────────────────┤
-│   Upload a T20 match                       │
+│   Upload a football match                  │
 │   ┌──────────────────────────────────────┐ │
 │   │  Drop a .mp4 / .mkv file here        │ │
 │   │  or click to choose                  │ │

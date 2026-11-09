@@ -1,5 +1,7 @@
 # Slice 32 — Commentary keywords (stretch)
 
+> **Replaced by slice 45** after the move to football. Kept for history.
+
 **Owner:** Dev A · **Sprint:** 08 · **Target week:** 14 · **Depends on:** 22
 
 ## Module

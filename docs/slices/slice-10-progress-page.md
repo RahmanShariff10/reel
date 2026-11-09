@@ -1,6 +1,6 @@
 # Slice 10 — Progress page
 
-**Owner:** Dev B · **Sprint:** 02 · **Target week:** 4 · **Depends on:** 05, 06
+**Owner:** Dev B · **Sprint:** F4 · **Target week:** 7–8 · **Depends on:** 05, 06
 
 ## Module
 `frontend`
@@ -8,7 +8,7 @@
 ## What to build
 `/jobs/[id]` while a job is queued or running:
 - polls `GET /api/jobs/{id}` every 2 s;
-- shows all 9 stages with friendly names ("Reading video", "Finding the score", "Scanning video", "Reading the score", "Recognising camera shots", "Analysing crowd audio", "Finding deliveries", "Picking highlights", "Rendering reel"), each marked done, current or pending;
+- shows all 10 stages with friendly names ("Reading video", "Finding the score", "Scanning video", "Reading the score", "Recognising camera shots", "Analysing crowd audio", "Finding key moments", "Listening to commentary", "Picking highlights", "Rendering reel"), each marked done, current or pending;
 - shows an overall progress bar and the elapsed time;
 - stops polling when the job is `done` (shows a results placeholder until slice 24) or `failed` (shows the error message and a link back to upload);
 - reopening the URL later shows the current state.

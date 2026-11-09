@@ -1,5 +1,7 @@
 # ADR-001 — The delivery (one ball) is the unit of analysis
 
+> **Superseded by [ADR-004](ADR-004-moment-as-unit.md)** after the move to football. Kept for history.
+
 ## Context
 Generic highlight systems (e.g. football action spotting) score a match second by second and pick peaks. Cricket is structured as discrete deliveries, each following the same broadcast pattern: bowler run-up from behind the bowler → shot → cut away → optional replays → next ball.
 

@@ -1,6 +1,6 @@
 # Slice 31 — Past matches
 
-**Owner:** Dev B · **Sprint:** 07 · **Target week:** 13–14 · **Depends on:** 23
+**Owner:** Dev B · **Sprint:** F5 · **Target week:** 12 · **Depends on:** 23
 
 ## Module
 `frontend`

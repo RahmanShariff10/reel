@@ -1,19 +1,22 @@
-# Architecture — Reel: Automatic Cricket Highlight Generator
+# Architecture — Reel: Automatic Football Highlight Generator
 
 > Descriptive, not persuasive. The "why" for non-obvious choices lives in [`decisions/`](decisions/).
 > Requirements: [`PRD.md`](PRD.md) · Background: [`research.md`](research.md)
+>
+> **Assumptions still to confirm on real footage (slice 38):** the clock can be located on most broadcasts; the score graphic hides during replays; crowd-audio peaks line up with goals. Sections that depend on them are marked *(A)*.
 
 ## Stack
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui; native HTML5 `<video>`; Recharts for the excitement chart.
 - **Backend:** Python 3.11, FastAPI + Uvicorn, Pydantic models, `uv` for dependency management.
 - **Worker:** a separate Python process (`python -m reel.jobs.worker`) that runs the pipeline, one job at a time.
 - **Database:** SQLite (jobs and reels tables only). Everything else is files under `data/`.
-- **Hosting:** none. Runs on the developer's laptop (localhost); Google Colab for evaluation batches and classifier training.
+- **Hosting:** none. Runs on the developer's laptop (localhost). SoccerNet footage is never processed on Colab or other cloud services.
 - **Media:** ffmpeg / ffprobe (system binaries, called via subprocess).
 - **Models (pretrained, CPU):**
   - OCR: RapidOCR (PaddleOCR PP-OCR models on ONNX Runtime).
   - Camera-shot type: CLIP ViT-B/32 via `open_clip` + a scikit-learn logistic-regression classifier trained on CLIP embeddings.
   - Crowd audio: PANNs CNN14 via `panns_inference` (AudioSet classes: Cheering, Applause, Crowd).
+  - Commentary: faster-whisper (int8, CPU), only around candidate moments.
   - Camera-cut detection: PySceneDetect detectors run on low-resolution frames.
   - Loudness: librosa.
 - **Testing:** pytest. Test videos are generated synthetically with ffmpeg; no real match footage is ever needed for tests.
@@ -28,7 +31,7 @@ flowchart LR
     API --> FS[(data/jobs/&lt;id&gt;/)]
     W[Worker process] -->|claim job · progress| DB
     W -->|stage outputs| FS
-    W --> M[OCR · CLIP · PANNs]
+    W --> M[OCR · CLIP · PANNs · Whisper]
     W --> FF[ffmpeg]
 ```
 
@@ -42,85 +45,113 @@ Each stage reads earlier stages' files and writes its own into `data/jobs/<id>/`
 | # | Stage | Module | Does | Writes |
 |---|---|---|---|---|
 | 1 | `ingest` | `ingest` | ffprobe metadata; extract audio as 32 kHz mono WAV | `meta.json`, `audio.wav` |
-| 2 | `locate_scorebox` | `scoreboard` | Seek to ~80 frames spread across the match (skipping the first/last 5 min); full-frame OCR; keep text matching score patterns (`\d{1,3}[/-]\d{1,2}`, `\d{1,2}\.\d`) whose position is stable; validate that readings increase plausibly over time | `scorebox.json` (box, confidence, sample reading, or `found: false`), `scorebox_preview.jpg` (a sample frame, saved even when not found) |
+| 2 | `locate_scorebox` | `scoreboard` | Seek to ~80 frames across the match; full-frame OCR; find a position whose text is a running clock; find the score next to it | `scorebox.json` (box, clock box, confidence, sample reading, or `found: false`), `scorebox_preview.jpg` |
 | 3 | `scan` | `ingest` | **The only full decode of the video.** One ffmpeg pass outputs (a) 4 fps low-res frames → camera-cut detection + one keyframe per shot; (b) 2 fps full-res crops of the score box (skipped if not found) | `shots.json` (boundaries), `keyframes/`, `score_crops/` |
-| 4 | `read_score` | `scoreboard` | OCR text recognition only on crops that differ from the previous crop; parse runs/wickets/overs; match-state machine (see below); score-box visibility timeline | `score_readings.json` (raw OCR readings), `score_timeline.json`, `score_events.json` |
-| 5 | `classify_shots` | `shots` | CLIP embedding per keyframe → classifier → `run_up` / `close_up` / `crowd` / `field` / `graphic` with probabilities | `shot_embeddings.npy` (cache), `shots.json` (labelled) |
-| 6 | `audio` | `audio` | Per-second excitement: loudness z-score against a rolling 5-min median/MAD, plus PANNs P(cheering/applause/crowd); combined score in [0,1] | `excitement.csv` |
-| 7 | `deliveries` | `deliveries` | A `run_up` shot with the score box visible = a delivery start (consecutive ones merged). Each score event is assigned to the latest delivery that started before it. `run_up` shots with the score box hidden before the next delivery = that delivery's replays | `deliveries.json` |
-| 8 | `highlights` | `highlights` | Rate each delivery with the rules; attach reasons; compute clip start/end; select clips for the requested mode | `events.json`, `reel_plan_<mode>.json` |
-| 9 | `render` | `render` | Cut each clip (re-encode, 720p H.264/AAC), draw the caption, 0.3 s fade in/out, generate the title card, concatenate | `reel_<mode>.mp4`, `clips/`, `summary.json` |
+| 4 | `read_score` | `scoreboard` | OCR only on crops whose score area changed, ignoring the clock; read the clock every 30 s; goal state machine; halves; visibility timeline | `score_readings.json`, `score_timeline.json`, `score_events.json` |
+| 5 | `classify_shots` | `shots` | CLIP embedding per keyframe → classifier → `wide` / `medium` / `close_up` / `crowd` / `graphic` with probabilities | `shot_embeddings.npy` (cache), `shots.json` (labelled) |
+| 6 | `audio` | `audio` | Per-second excitement: loudness and PANNs crowd probability, each compared with a rolling 5-min baseline, combined in [0,1] | `excitement.csv` |
+| 7 | `moments` | `moments` | Merge goal events, excitement peaks and replay runs into candidate moments; find each moment's time and play start | `moments.json` |
+| 8 | `commentary` | `audio` | Transcribe short windows around the top candidates; match keywords that give an event type | `commentary.json` |
+| 9 | `highlights` | `highlights` | Rate each moment with the rules; attach reasons; compute clip start/end; select clips for the requested mode | `events.json`, `reel_plan_<mode>.json` |
+| 10 | `render` | `render` | Cut each clip (re-encode, 720p H.264/AAC), draw the caption, 0.3 s fade in/out, generate the title card, concatenate | `reel_<mode>.mp4`, `clips/`, `summary.json` |
 
-The default 5-minute reel runs stages 1–9. Requesting another mode re-runs only stages 8–9: the API creates a queued `Reel` row, and the worker claims queued reels the same way it claims jobs.
+The default 5-minute reel runs stages 1–10. Requesting another mode re-runs only stages 9–10: the API creates a queued `Reel` row, and the worker claims queued reels the same way it claims jobs.
 
-### Score-box detection (stage 2)
-- A candidate region must contain parseable score-like text in **≥ 40%** of sampled frames.
-- Its readings in time order must be plausible: runs and overs non-decreasing within an innings in **≥ 90%** of consecutive pairs.
-- If several regions qualify, take the one with the most valid readings. If none qualifies, `found: false`; stages 4 and the score part of 7 are skipped, and highlights use audio + video signals only. The result page shows a notice.
-- Both runs-wickets (`145/3`, Indian broadcasts) and wickets-runs (`3/145`, Australian) orders must be handled: the number that grows faster is runs.
+### Score-graphic detection (stage 2) *(A)*
+- **The clock is the anchor.** A clock token is `M:SS`, `MM:SS` or `MMM:SS` with seconds < 60, optionally followed by `+N`.
+- A candidate position must show a clock token in **≥ 40%** of sampled frames.
+- **Linearity check:** for consecutive samples of a candidate, clock change ÷ video-time change must be within 0.9–1.1 in **≥ 70%** of pairs (half-time jumps are excluded by the rest of the pairs passing). This rejects static text and countdowns.
+- The **score** is the pair of integers (0–15) next to the clock, separated by `-`, `:`, `|` or nothing, between optional team codes. OCR may return these as one line or as separate items; both must parse.
+- `clock_box` is the OCR rectangle of the clock. When OCR merges clock and score into one item, `clock_box` is the sub-region whose pixels change on ≥ 80% of crops 1 s apart.
+- If no position qualifies, `found: false`; stages 4 and the goal part of 7 are skipped, and highlights use audio + video signals only. The result page shows a notice.
 
-### Match-state machine (stage 4)
-- A new reading is accepted only after it appears in **≥ 2 consecutive** changed crops.
-- Runs never decrease within an innings; wickets rise by at most 1 per change; a single-change run delta above 13 is rejected as an OCR error.
-- Runs, wickets and overs all dropping to ~0 → new innings.
-- Wickets dropping by exactly 1 within 120 s of a wicket → DRS reversal; the wicket event is marked `overturned`.
-- Readings while the box is hidden are recorded as `visible: false`, not as missing data errors.
-- Events emitted: `runs` (delta, incl. 4/6), `wicket`, `wicket_overturned`, `innings_start`.
+### Goal state machine (stage 4)
+- **OCR skip:** a crop is OCR'd only if its pixels **outside `clock_box`** changed. The clock is OCR'd separately every `clock_read_s` (30 s) and interpolated between readings.
+- A new score is accepted only after it appears in **≥ 3 consecutive** readings.
+- Exactly one side rises by exactly 1 per change; anything else is rejected as an OCR error.
+- One side dropping by exactly 1 within 300 s of that side's goal → the goal is marked `overturned`.
+- **Halves:** the clock fit gives each half's video range. A clock gap of ≥ 5 min or a clock jumping backwards starts a new half. `in_play(t)` is true between the first and last clock reading of a half; pre-match and half-time are excluded from moments. If the box was not found, the whole video counts as in play.
+- Readings while the box is hidden are recorded as `visible: false`, not as errors.
+- Events emitted: `goal`, `goal_overturned`, `half_start`.
 
-### Highlight rules (stage 8)
+### Moments (stage 7)
+A moment comes from any of three sources; sources within `merge_window_s` (25 s) become one moment.
+- **Goal:** each `goal` event. `t_moment` = the excitement maximum in [score change − `goal_lookback_s` (90 s), score change], because the graphic updates after the goal. With no audio, `t_moment` = score change − `default_goal_lag_s` (20 s).
+- **Audio peak:** a local maximum of 3 s-smoothed excitement with prominence ≥ `peak_prominence` and ≥ `peak_min_gap_s` (30 s) from a stronger peak.
+- **Replay** *(A)*: a run of the box being hidden ≥ `replay_min_s` (3 s) while in play. `t_moment` = the excitement maximum in the 30 s before it.
+
+`replay_count` = hidden runs in [`t_moment`, `t_moment` + 60 s]. `play_start_s` = start of the earliest unbroken run of `wide`/`medium` shots ending at or after `t_moment`, limited by the clip pre-roll.
+
+### Commentary (stage 8)
+- Transcribes [`t_moment` − 8 s, `t_moment` + 12 s] for every goal and the top `commentary_top_k` (60) other moments by excitement. Never the full audio.
+- Language is checked first on 5 windows. If it isn't English, the stage writes `language` and no keywords, and non-goal moments stay type `moment`.
+- Keywords in config, by type: `penalty` ("penalty", "spot kick"), `red_card` ("red card", "sent off"), `chance` ("what a save", "great save", "off the post", "hits the bar", "crossbar", "so close", "just wide"), `yellow_card` ("yellow card", "booked").
+- Precedence when several match: `goal` > `penalty` > `red_card` > `chance` > `yellow_card`.
+
+### Highlight rules (stage 9)
 All values are configurable in `config/default.yaml`.
 
-| Delivery outcome | Base importance |
+| Event | Base importance |
 |---|---|
-| Wicket | 1.0 (always selected if the length allows) |
-| Six | 0.85 |
-| Four (runs delta = 4) | 0.7 |
-| Near-miss (no score change, excitement ≥ 0.7 and ≥ 1 replay) — should-have | 0.5 |
-| Moment (fallback when no score box: high excitement and/or replays, type unknown) | 0.4–0.8 from excitement |
+| Goal | 1.0 (always selected if the length allows) |
+| Penalty (not scored) | 0.85 |
+| Red card | 0.85 |
+| Chance | 0.65 |
+| Yellow card | 0.3 |
+| Moment (high excitement and/or replays, type unknown) | 0.4–0.7 from excitement |
 
-Bonuses: crowd excitement +0.0–0.2; +0.05 per replay (max +0.15); last 3 overs of either innings or a close chase +0.1. Every event stores the reasons that produced its score.
+Bonuses: crowd excitement +0.0–0.2; +0.05 per replay (max +0.15); from the 80th minute with the score within one goal +0.1; commentary keyword matched +0.1. Every event stores the reasons that produced its score.
 
-**Clip boundaries.** `t_hit` = end of the delivery's `run_up` shot.
-- Start = max(run-up shot start, `t_hit − 6 s`).
-- End = `t_hit + 12 s` for a four or six; `t_hit + 20 s` for a wicket.
-- Never past the next delivery start − 0.5 s. Caps: 25 s for boundaries, 35 s for wickets.
+A non-goal moment needs excitement ≥ `moment_min_excitement` or at least one replay. Keyword-typed events still have to pass this test, so "that should have been a penalty" during quiet play creates nothing.
+
+**Clip boundaries** (seconds around `t_moment`).
+
+| Type | Pre-roll | Post-roll | Cap |
+|---|---|---|---|
+| Goal | 20 | 25 | 45 |
+| Penalty | 20 | 20 | 30 |
+| Chance | 12 | 10 | 25 |
+| Red / yellow card | 10 | 12 | 25 |
+| Moment | 12 | 10 | 25 |
+
+Start = max(`play_start_s`, `t_moment` − pre-roll). End = `t_moment` + post-roll. Never crosses a half boundary.
 
 **Selection.** Modes `3min`, `5min`, `10min`, `all`:
-1. Add wickets first (by importance), then other events by importance, until the target length would be exceeded (title card and fades included).
+1. Add goals first, then other events by importance, until the target length would be exceeded (title card and fades included).
 2. Allow ±15 s of the target length.
-3. `all` = every wicket, six and four.
-4. Selected clips play in match order.
+3. `all` = every goal, penalty, red card and chance, plus `moment` events when the score box wasn't found.
+4. Selected clips play in match order. Overturned goals are never selected.
 
 ## Modules
 Split by domain. Each module only reads/writes the stage files listed above and the shared models in `common`.
 
-- `common` — config loading, Pydantic models for every stage file, job paths, logging. **Agreed jointly in sprint 1; changes need both people's agreement.**
-- `jobs` — SQLite job store, worker loop, pipeline runner (stage ordering, skipping completed stages, progress updates).
-- `api` — FastAPI routes, upload streaming, file serving with HTTP Range support (needed for video seeking).
-- `ingest` — video metadata, audio extraction, the single full scan (frames for cut detection, keyframes, score crops).
-- `scoreboard` — locate the score box, OCR, match-state machine, score events, visibility timeline.
-- `shots` — camera-cut detection, shot labelling (CLIP + classifier), labelling tool and classifier training script.
-- `audio` — excitement-over-time series.
-- `deliveries` — delivery segmentation, outcome assignment, replay counting.
+- `common` — config loading, Pydantic models for every stage file, job paths, logging. **Changes need both people's agreement.**
+- `jobs` — SQLite job store, worker loop, pipeline runner.
+- `api` — FastAPI routes, upload streaming, file serving with HTTP Range support.
+- `ingest` — video metadata, audio extraction, the single full scan.
+- `scoreboard` — locate the score graphic, OCR, goal state machine, halves, visibility timeline.
+- `shots` — camera-cut detection, shot labelling (CLIP + classifier), classifier training script.
+- `audio` — excitement-over-time series, commentary keywords.
+- `moments` — candidate-moment generation and replay counting.
 - `highlights` — rating rules, reasons, clip boundaries, selection.
 - `render` — captions, title card, clip cutting, concatenation.
 - `frontend` (Next.js) — upload page, progress page, results page, past matches page.
-- `eval` — Cricsheet loader, annotation format, metric scripts, ablation runs, Colab notebooks. Not imported by the app.
+- `eval` — SoccerNet label loader, match preparation, metric scripts, ablation runs. Not imported by the app.
 
-Typical ownership: Person A — `scoreboard`, `deliveries`, `highlights`; Person B — `audio`, `shots`, `render`, `api`, `frontend`. `ingest`, `jobs`, `common` and `eval` are shared.
+Ownership: Dev A — `common`, `jobs`, `ingest`, `scoreboard`, `moments`, `highlights`, `eval`; Dev B — `shots`, `audio`, `render`, `api`, `frontend`, test fixtures.
 
 ### Repo layout
 ```
 backend/
   pyproject.toml
   config/default.yaml
-  reel/{common,jobs,api,ingest,scoreboard,shots,audio,deliveries,highlights,render}/
+  reel/{common,jobs,api,ingest,scoreboard,shots,audio,moments,highlights,render}/
   tests/                 # pytest; tests/fixtures/make_synthetic.py builds test videos
 frontend/                # Next.js app
 eval/
-  annotations/           # our timestamp annotations (CSV) — committed
-  cricsheet/             # downloaded Cricsheet JSON (gitignored)
-  scripts/, notebooks/
+  soccernet/             # downloaded labels (gitignored)
+  manifests/             # which SoccerNet games are dev/test — committed
+  reports/
 data/                    # gitignored: videos, jobs/<id>/, models/
 docs/
 ```
@@ -141,7 +172,7 @@ Base URL `http://127.0.0.1:8000`. JSON unless noted.
 | GET | `/api/files/{id}/{path}` | `Range` header supported | file bytes (video / image / JSON) |
 | POST | `/api/jobs/{id}/scorebox` *(should-have)* | `{ x, y, w, h }` in source pixels | `{ job_id, status }` (re-runs from stage 3) |
 
-Errors: `{ error: { code, message } }` with 4xx/5xx. `stage` values: `ingest`, `locate_scorebox`, `scan`, `read_score`, `classify_shots`, `audio`, `deliveries`, `highlights`, `render`.
+Errors: `{ error: { code, message } }` with 4xx/5xx. `stage` values: `ingest`, `locate_scorebox`, `scan`, `read_score`, `classify_shots`, `audio`, `moments`, `commentary`, `highlights`, `render`.
 
 ## Data model
 **SQLite**
@@ -149,10 +180,13 @@ Errors: `{ error: { code, message } }` with 4xx/5xx. `stage` values: `ingest`, `
 - `Reel` — `job_id`, `mode`, `status`, `path`, `duration_s`, `event_ids` (JSON), `exclude_event_ids` (JSON). Unique per (`job_id`, `mode`).
 
 **Stage files (Pydantic models in `common`)**
-- `Delivery` — `id`, `innings`, `over_ball` (e.g. `"16.2"`, may be null), `start_s`, `t_hit_s`, `end_s`, `runs_delta`, `wicket` (bool), `overturned` (bool), `score_after` (e.g. `"IND 151/3"`), `replay_count`, `excitement_max`.
-- `Event` (in `events.json`, returned by `/result`) — `id`, `delivery_id`, `type` (`wicket`/`six`/`four`/`near_miss`/`moment`), `innings`, `over_ball`, `score_text`, `importance` (0–1), `confidence` (0–1), `reasons: [{ signal, value, label }]` (e.g. `{signal: "score", value: 6, label: "score +6"}`), `moment_s`, `clip: { start_s, end_s }`, `overturned` (wicket reversed on review; never selected).
-- `summary` — `teams?`, `innings: [{ runs, wickets, overs, fours, sixes }]`, `deliveries_found`, `processing_s`, `scorebox_found`.
-- `scorebox` — `found`, `box: [x, y, w, h]?`, `confidence`, `sample_reading?`, `preview_url?`.
+- `Scorebox` — `found`, `box: [x, y, w, h]?`, `clock_box: [x, y, w, h]?`, `confidence`, `sample_reading?`, `sample_time_s?`, `preview_url?`.
+- `ScoreReading` — `time_s`, `raw_text`, `home_code?`, `away_code?`, `home?`, `away?`, `clock_s?`, `confidence`, `visible`.
+- `ScoreTimelineEntry` — `time_s`, `home`, `away`, `visible`, `half`, `clock_s?`, `in_play`.
+- `ScoreEvent` — `type` (`goal`/`goal_overturned`/`half_start`), `time_s`, `side` (`home`/`away`)?, `home`, `away`, `half`, `clock_s?`, `overturned`.
+- `Moment` — `id`, `half`, `minute` (e.g. `"67"`, `"45+2"`, may be null), `t_moment_s`, `play_start_s`, `sources` (`goal`/`audio`/`replay`), `goal` (bool), `side?`, `overturned`, `score_after` (e.g. `"ARS 2-1 CHE"`), `replay_count`, `excitement_max`.
+- `Event` (in `events.json`, returned by `/result`) — `id`, `moment_id`, `type` (`goal`/`penalty`/`red_card`/`chance`/`yellow_card`/`moment`), `half`, `minute`, `score_text`, `importance` (0–1), `confidence` (0–1), `reasons: [{ signal, value, label }]`, `moment_s`, `clip: { start_s, end_s }`, `overturned`.
+- `summary` — `teams?`, `final_score?` (`"ARS 2-1 CHE"`), `halves: [{ home_goals, away_goals }]`, `moments_found`, `processing_s`, `scorebox_found`, `stage_timings`.
 
 **Job directory**
 ```
@@ -161,23 +195,41 @@ data/jobs/<id>/
   scorebox.json  scorebox_preview.jpg  shots.json  keyframes/  score_crops/
   score_readings.json  score_timeline.json  score_events.json
   shot_embeddings.npy  excitement.csv
-  deliveries.json  events.json  reel_plan_<mode>.json
+  moments.json  commentary.json  events.json  reel_plan_<mode>.json
   clips/  reel_<mode>.mp4  title.png  summary.json
 ```
 
+## Evaluation
+Ground truth is SoccerNet-v2 `Labels-v2.json`: per half, `gameTime` (`"1 - 13:10"`), `position` (ms into that half's video), `label`, `team`, `visibility`. `Labels-cameras.json` gives camera type and a `replay` flag per shot.
+
+SoccerNet videos are one file per half. `eval` joins them into one file for a job and shifts second-half label times by the first file's duration.
+
+**Key actions** are the labels `Goal`, `Penalty`, `Red card`, `Yellow->red card` and `Shots on target`.
+
+| ID | Measures | Definition |
+|---|---|---|
+| E0 | Graphic found | Share of matches with `found: true` |
+| E1 | Goals | Precision/recall of `goal` events against `Goal` labels; a match needs `t_moment` within ±30 s of the label |
+| E2 | Key actions | Recall of key actions by `all`-mode events within ±15 s |
+| E3 | Goal clips | Share of `Goal` labels whose clip covers label − 3 s to label + 3 s |
+| E4 | Ablation | E1–E3 and E5 with signals switched off: audio → + shots/replays → + commentary → + score |
+| E5 | Reel quality | Share of 5-minute-reel clips containing a key action, compared with random clips of the same count and lengths from in-play time (seeded, 20 draws) |
+| E6 | Viewer survey | Only if footage rights allow |
+| — | Runtime | `summary.processing_s` per match |
+
 ## Configuration
-- `backend/config/default.yaml` — all thresholds, weights, clip rules and sampling rates, plus `signals.{score,shots,audio,replays}: true|false` switches used for the ablation evaluation.
+- `backend/config/default.yaml` — all thresholds, weights, clip rules and sampling rates, plus `signals.{score,shots,audio,replays,commentary}: true|false` switches used for the ablation evaluation.
 - Environment variables (names only, see `.env.example`): `REEL_DATA_DIR`, `REEL_MODELS_DIR`, `REEL_API_HOST`, `REEL_API_PORT`, `NEXT_PUBLIC_API_URL`.
 
 ## Testing
-- Synthetic fixtures: `tests/fixtures/make_synthetic.py` uses ffmpeg to generate short videos: coloured "pitch" and "crowd" scenes with hard cuts, a drawn score box whose text changes on a known schedule (including a hidden-box replay and a DRS reversal), and audio with noise bursts at known times. Tests assert against the known schedule.
+- Synthetic fixtures: `tests/fixtures/make_synthetic.py` uses ffmpeg to generate short videos: coloured pitch and crowd scenes with hard cuts, a drawn score graphic with a running clock and a score that changes on a known schedule (including a hidden-box replay, an overturned goal and a half-time break), and audio with bursts at known times. Tests assert against the known schedule.
 - Every module is tested on its stage file inputs/outputs, so tests don't need earlier stages to run.
 - Real footage is used only in `eval/`, locally.
 
 ## Constraints
 - **Scale:** single user, localhost only (API binds to `127.0.0.1`), one job running at a time. No auth.
-- **Performance:** CPU only. A full T20 (~3.5 h, 720p) must finish in ≤ 60 min (expected 25–45 min) on a laptop. Re-cutting a reel in another mode should take ≤ 5 min. The video is fully decoded once (stage 3); other stages use seeks, crops and keyframes. Memory must stay bounded: stream frames, never load the whole video.
-- **Data:** match videos and job outputs stay in `data/` (gitignored), are never committed and never sent to any external service. Models are downloaded once to `REEL_MODELS_DIR`.
+- **Performance:** CPU only. A full match (~2 h, 720p) must finish in ≤ 60 min on a laptop. Re-cutting a reel in another mode should take ≤ 5 min. The video is fully decoded once (stage 3). Memory must stay bounded: stream frames, never load the whole video.
+- **Data:** match videos and job outputs stay in `data/` (gitignored), are never committed and never sent to any external service. Models are downloaded once to `REEL_MODELS_DIR`. SoccerNet rules in [ADR-006](decisions/ADR-006-soccernet-eval-and-footage-rules.md) apply.
 - **Reproducibility:** the same input and config produce the same `events.json` (fixed seeds, deterministic ordering).
 - **Not needed:** live streams, multiple concurrent jobs, accounts, cloud deployment, GPU support, Docker/CI (unless explicitly requested), mobile layouts beyond basic responsiveness.
 

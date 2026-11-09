@@ -1,6 +1,6 @@
 # Slice 05 — API core
 
-**Owner:** Dev B · **Sprint:** 01 · **Target week:** 2 · **Depends on:** 02, 04
+**Owner:** Dev B · **Sprint:** F4 · **Target week:** 7 · **Depends on:** 02, 04
 
 ## Module
 `api`
