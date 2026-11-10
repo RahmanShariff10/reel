@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Protocol
 
 import numpy as np
+import soundfile as sf
 import yaml
 from reel.audio.excitement import PannsTagger, Tagger, compute_excitement
 from reel.common.config import AudioConfig, MomentsConfig, ReelConfig, ScoreboardConfig, load_config
@@ -332,7 +333,9 @@ class WhisperLanguageDetector:
         )
 
     def detect(self, wav: Path) -> str:
-        _, info = self._model.transcribe(str(wav), beam_size=1)
+        # Pass samples, not a path: faster-whisper 1.2's file decoding crashes on PyAV 19.
+        samples, _ = sf.read(wav, dtype="float32")
+        _, info = self._model.transcribe(samples, beam_size=1)
         return info.language
 
 

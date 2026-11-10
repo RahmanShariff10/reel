@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import soundfile as sf
 from reel.common.config import load_config
 from reel.ingest.frames import grab_frame
 from reel.ingest.probe import find_binary, probe_video
@@ -34,6 +35,7 @@ from eval.check_assumptions import (  # noqa: E402
     ClockCheck,
     MatchResult,
     ReplayCheck,
+    WhisperLanguageDetector,
     check_match,
     detect_language,
     load_games,
@@ -385,3 +387,28 @@ def test_language_majority(tmp_path: Path, synthetic_game) -> None:
             return next(self.answers)
 
     assert detect_language([(video, 170.0)], Votes(), windows=3) == "en"
+
+
+def test_whisper_detector_passes_samples_not_a_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """faster-whisper's own file decoding crashes on PyAV 19, so it must be given samples."""
+    received = []
+
+    class FakeModel:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def transcribe(self, audio, beam_size):
+            received.append(audio)
+            return [], type("Info", (), {"language": "en"})()
+
+    monkeypatch.setattr("faster_whisper.WhisperModel", FakeModel)
+    wav = tmp_path / "window.wav"
+    sf.write(wav, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert WhisperLanguageDetector("small", "int8", tmp_path).detect(wav) == "en"
+
+    assert isinstance(received[0], np.ndarray)
+    assert received[0].dtype == np.float32
+    assert received[0].shape == (16000,)
