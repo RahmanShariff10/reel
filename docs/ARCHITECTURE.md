@@ -3,7 +3,7 @@
 > Descriptive, not persuasive. The "why" for non-obvious choices lives in [`decisions/`](decisions/).
 > Requirements: [`PRD.md`](PRD.md) · Background: [`research.md`](research.md)
 >
-> **Assumptions still to confirm on real footage (slice 38):** the clock can be located on most broadcasts; the score graphic hides during replays; crowd-audio peaks line up with goals. Sections that depend on them are marked *(A)*.
+> **Checked on real footage in slice 38** ([report](../eval/reports/assumptions.md)): the clock was found on 5 of 5 broadcasts. The score graphic does **not** hide during replays, so replays aren't used in the MVP ([ADR-007](decisions/ADR-007-no-replay-signal.md)). Crowd-audio peaks matched 11 of 14 goals but only 22 of 52 shots on target.
 
 ## Stack
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui; native HTML5 `<video>`; Recharts for the excitement chart.
@@ -50,14 +50,14 @@ Each stage reads earlier stages' files and writes its own into `data/jobs/<id>/`
 | 4 | `read_score` | `scoreboard` | OCR only on crops whose score area changed, ignoring the clock; read the clock every 30 s; goal state machine; halves; visibility timeline | `score_readings.json`, `score_timeline.json`, `score_events.json` |
 | 5 | `classify_shots` | `shots` | CLIP embedding per keyframe → classifier → `wide` / `medium` / `close_up` / `crowd` / `graphic` with probabilities | `shot_embeddings.npy` (cache), `shots.json` (labelled) |
 | 6 | `audio` | `audio` | Per-second excitement: loudness and PANNs crowd probability, each compared with a rolling 5-min baseline, combined in [0,1] | `excitement.csv` |
-| 7 | `moments` | `moments` | Merge goal events, excitement peaks and replay runs into candidate moments; find each moment's time and play start | `moments.json` |
+| 7 | `moments` | `moments` | Merge goal events and excitement peaks into candidate moments; find each moment's time and play start | `moments.json` |
 | 8 | `commentary` | `audio` | Transcribe short windows around the top candidates; match keywords that give an event type | `commentary.json` |
 | 9 | `highlights` | `highlights` | Rate each moment with the rules; attach reasons; compute clip start/end; select clips for the requested mode | `events.json`, `reel_plan_<mode>.json` |
 | 10 | `render` | `render` | Cut each clip (re-encode, 720p H.264/AAC), draw the caption, 0.3 s fade in/out, generate the title card, concatenate | `reel_<mode>.mp4`, `clips/`, `summary.json` |
 
 The default 5-minute reel runs stages 1–10. Requesting another mode re-runs only stages 9–10: the API creates a queued `Reel` row, and the worker claims queued reels the same way it claims jobs.
 
-### Score-graphic detection (stage 2) *(A)*
+### Score-graphic detection (stage 2)
 - **The clock is the anchor.** A clock token is `M:SS`, `MM:SS` or `MMM:SS` with seconds < 60, optionally followed by `+N`.
 - A candidate position must show a clock token in **≥ 40%** of sampled frames.
 - **Linearity check:** for consecutive samples of a candidate, clock change ÷ video-time change must be within 0.9–1.1 in **≥ 70%** of pairs (half-time jumps are excluded by the rest of the pairs passing). This rejects static text and countdowns.
@@ -75,12 +75,11 @@ The default 5-minute reel runs stages 1–10. Requesting another mode re-runs on
 - Events emitted: `goal`, `goal_overturned`, `half_start`.
 
 ### Moments (stage 7)
-A moment comes from any of three sources; sources within `merge_window_s` (25 s) become one moment.
+A moment comes from either of two sources; sources within `merge_window_s` (25 s) become one moment.
 - **Goal:** each `goal` event. `t_moment` = the excitement maximum in [score change − `goal_lookback_s` (90 s), score change], because the graphic updates after the goal. With no audio, `t_moment` = score change − `default_goal_lag_s` (20 s).
 - **Audio peak:** a local maximum of 3 s-smoothed excitement with prominence ≥ `peak_prominence` and ≥ `peak_min_gap_s` (30 s) from a stronger peak.
-- **Replay** *(A)*: a run of the box being hidden ≥ `replay_min_s` (3 s) while in play. `t_moment` = the excitement maximum in the 30 s before it.
 
-`replay_count` = hidden runs in [`t_moment`, `t_moment` + 60 s]. `play_start_s` = start of the earliest unbroken run of `wide`/`medium` shots ending at or after `t_moment`, limited by the clip pre-roll.
+Replays are not a source: the score graphic stays on during them ([ADR-007](decisions/ADR-007-no-replay-signal.md)). `play_start_s` = start of the earliest unbroken run of `wide`/`medium` shots ending at or after `t_moment`, limited by the clip pre-roll.
 
 ### Commentary (stage 8)
 - Transcribes [`t_moment` − 8 s, `t_moment` + 12 s] for every goal and the top `commentary_top_k` (60) other moments by excitement. Never the full audio.
@@ -98,11 +97,11 @@ All values are configurable in `config/default.yaml`.
 | Red card | 0.85 |
 | Chance | 0.65 |
 | Yellow card | 0.3 |
-| Moment (high excitement and/or replays, type unknown) | 0.4–0.7 from excitement |
+| Moment (high excitement, type unknown) | 0.4–0.7 from excitement |
 
-Bonuses: crowd excitement +0.0–0.2; +0.05 per replay (max +0.15); from the 80th minute with the score within one goal +0.1; commentary keyword matched +0.1. Every event stores the reasons that produced its score.
+Bonuses: crowd excitement +0.0–0.2; from the 80th minute with the score within one goal +0.1; commentary keyword matched +0.1. Every event stores the reasons that produced its score.
 
-A non-goal moment needs excitement ≥ `moment_min_excitement` or at least one replay. Keyword-typed events still have to pass this test, so "that should have been a penalty" during quiet play creates nothing.
+A non-goal moment needs excitement ≥ `moment_min_excitement`. Keyword-typed events still have to pass this test, so "that should have been a penalty" during quiet play creates nothing.
 
 **Clip boundaries** (seconds around `t_moment`).
 
@@ -132,7 +131,7 @@ Split by domain. Each module only reads/writes the stage files listed above and 
 - `scoreboard` — locate the score graphic, OCR, goal state machine, halves, visibility timeline.
 - `shots` — camera-cut detection, shot labelling (CLIP + classifier), classifier training script.
 - `audio` — excitement-over-time series, commentary keywords.
-- `moments` — candidate-moment generation and replay counting.
+- `moments` — candidate-moment generation.
 - `highlights` — rating rules, reasons, clip boundaries, selection.
 - `render` — captions, title card, clip cutting, concatenation.
 - `frontend` (Next.js) — upload page, progress page, results page, past matches page.
@@ -184,7 +183,7 @@ Errors: `{ error: { code, message } }` with 4xx/5xx. `stage` values: `ingest`, `
 - `ScoreReading` — `time_s`, `raw_text`, `home_code?`, `away_code?`, `home?`, `away?`, `clock_s?`, `confidence`, `visible`.
 - `ScoreTimelineEntry` — `time_s`, `home`, `away`, `visible`, `half`, `clock_s?`, `in_play`.
 - `ScoreEvent` — `type` (`goal`/`goal_overturned`/`half_start`), `time_s`, `side` (`home`/`away`)?, `home`, `away`, `half`, `clock_s?`, `overturned`.
-- `Moment` — `id`, `half`, `minute` (e.g. `"67"`, `"45+2"`, may be null), `t_moment_s`, `play_start_s`, `sources` (`goal`/`audio`/`replay`), `goal` (bool), `side?`, `overturned`, `score_after` (e.g. `"ARS 2-1 CHE"`), `replay_count`, `excitement_max`.
+- `Moment` — `id`, `half`, `minute` (e.g. `"67"`, `"45+2"`, may be null), `t_moment_s`, `play_start_s`, `sources` (`goal`/`audio`), `goal` (bool), `side?`, `overturned`, `score_after` (e.g. `"ARS 2-1 CHE"`), `excitement_max`.
 - `Event` (in `events.json`, returned by `/result`) — `id`, `moment_id`, `type` (`goal`/`penalty`/`red_card`/`chance`/`yellow_card`/`moment`), `half`, `minute`, `score_text`, `importance` (0–1), `confidence` (0–1), `reasons: [{ signal, value, label }]`, `moment_s`, `clip: { start_s, end_s }`, `overturned`.
 - `summary` — `teams?`, `final_score?` (`"ARS 2-1 CHE"`), `halves: [{ home_goals, away_goals }]`, `moments_found`, `processing_s`, `scorebox_found`, `stage_timings`.
 
@@ -212,13 +211,13 @@ SoccerNet videos are one file per half. `eval` joins them into one file for a jo
 | E1 | Goals | Precision/recall of `goal` events against `Goal` labels; a match needs `t_moment` within ±30 s of the label |
 | E2 | Key actions | Recall of key actions by `all`-mode events within ±15 s |
 | E3 | Goal clips | Share of `Goal` labels whose clip covers label − 3 s to label + 3 s |
-| E4 | Ablation | E1–E3 and E5 with signals switched off: audio → + shots/replays → + commentary → + score |
+| E4 | Ablation | E1–E3 and E5 with signals switched off: audio → + shots → + commentary → + score |
 | E5 | Reel quality | Share of 5-minute-reel clips containing a key action, compared with random clips of the same count and lengths from in-play time (seeded, 20 draws) |
 | E6 | Viewer survey | Only if footage rights allow |
 | — | Runtime | `summary.processing_s` per match |
 
 ## Configuration
-- `backend/config/default.yaml` — all thresholds, weights, clip rules and sampling rates, plus `signals.{score,shots,audio,replays,commentary}: true|false` switches used for the ablation evaluation.
+- `backend/config/default.yaml` — all thresholds, weights, clip rules and sampling rates, plus `signals.{score,shots,audio,commentary}: true|false` switches used for the ablation evaluation.
 - Environment variables (names only, see `.env.example`): `REEL_DATA_DIR`, `REEL_MODELS_DIR`, `REEL_API_HOST`, `REEL_API_PORT`, `NEXT_PUBLIC_API_URL`.
 
 ## Testing

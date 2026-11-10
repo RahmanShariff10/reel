@@ -44,7 +44,7 @@ All of this can be done now, in this order.
 | 1 | [35 soccernet-loader](slices/slice-35-soccernet-loader.md) | eval | — | No | `[x]` |
 | 2 | [36 football-models](slices/slice-36-football-models.md) (see fix A) | common | — | No | `[x]` |
 | 3 | [37 football-fixtures](slices/slice-37-football-fixtures.md) (see fix B) | tests | 36 | No | `[x]` |
-| 4 | [38 real-match-check](slices/slice-38-real-match-check.md), **script and synthetic tests only** | eval | 35, 37 | Script no; running it yes (G1) | `[~]` |
+| 4 | [38 real-match-check](slices/slice-38-real-match-check.md) | eval | 35, 37 | Yes, run at G1 | `[x]` |
 | 5 | [50 football-metrics](slices/slice-50-football-metrics.md) (see fix C) | eval | 35, 36 | No | `[x]` |
 | 6 | [42 football-shots](slices/slice-42-football-shots.md) | shots | 36 | Final check only | `[~]` |
 | 7 | [05 api-core](slices/slice-05-api-core.md) | api | done slices only | No | `[x]` |
@@ -54,14 +54,14 @@ All of this can be done now, in this order.
 Slice 36 needs agreement from both developers before it is merged.
 
 ### Gate G1: real-footage go/no-go (human)
-**Status: not passed yet.** What's left is the team's decision on replays and the doc updates that follow it.
+**Status: passed on 10 November.**
 
 - [x] Downloaded games and labels, and ran `python -m eval.check_assumptions` on 5 matches from 5 competitions (`eval/manifests/assumption_games.yaml`). Results are in [eval/reports/assumptions.md](../eval/reports/assumptions.md).
-- [ ] Go/no-go call on each assumption:
+- [x] Go/no-go call on each assumption:
   - **A1 clock holds.** Found on 5 of 5 matches, on screen 94–98% of the time and ticking correctly 96–100%.
-  - **A2 replays fails.** The score graphic stays on during replays: hidden in 2% of replay shots and 3% of live shots. A hidden box can't mark a replay, so the team must decide how slice 44 finds replays, or drop them as a moment source.
+  - **A2 replays fails, so replays are dropped for the MVP** ([ADR-007](decisions/ADR-007-no-replay-signal.md)). The score graphic stays on during replays: hidden in 2% of replay shots and 3% of live shots. Moments now come from goals and crowd audio only.
   - **A3 audio holds for goals but is weak for other moments.** 11 of 14 goals had a peak within ±15 s (chance level 28%), but only 22 of 52 shots on target did, and peak rates ranged from 0.22 to 0.96 per minute between broadcasts. The check used the current excitement code. Slice 43's rolling crowd baseline should help, and slice 43 must re-measure this on the dev games.
-- [ ] Updated `docs/ARCHITECTURE.md` and the affected slices (43, 44, 46 and 26) for A2 and A3.
+- [x] Updated `docs/ARCHITECTURE.md`, `docs/PRD.md` and slices 24, 26, 28, 43, 44 and 46 for A2 and A3.
 - [x] Replaced `eval/manifests/matches.yaml` with 15 real English-commentary games: 5 dev games from SoccerNet's `train` split and 10 test games from its `test` split. Don't run the test games until config is frozen at G4.
 
 ## Phase 2: after footage
@@ -142,7 +142,7 @@ These correct problems found by checking the slices against the code. They overr
 - Slice 40 must not OCR a crop of only the clock. On the synthetic video, RapidOCR on a tightly padded clock crop split the digits (`45:03` came back as `45:0` and `3`). Read the clock from the whole score box or a generously padded crop, and test this with real OCR.
 - Slice 28 adds `source: "auto" | "manual"` to `Scorebox`, since the model doesn't have it.
 
-**E. Slice 49 also removes** the names and keys kept under fix A, the cricket `make_synthetic.py` and `test_synthetic_fixtures.py`, and the `reel.deliveries` entry in `test_config.py` (replace it with `reel.moments`). Update the fixture path in `docs/ARCHITECTURE.md`. `eval/` is already clean by then.
+**E. Slice 49 also removes** the names and keys kept under fix A, the cricket `make_synthetic.py` and `test_synthetic_fixtures.py`, and the `reel.deliveries` entry in `test_config.py` (replace it with `reel.moments`). Update the fixture path in `docs/ARCHITECTURE.md`. `eval/` is already clean by then. It also removes the replay leftovers ([ADR-007](decisions/ADR-007-no-replay-signal.md)): `"replay"` in `MomentSource`, `Moment.replay_count`, `signals.replays`, the `moments.replay_*` and `highlights.bonus.replay_*` config keys, and any tests that use them.
 
 **F. Small corrections.** Slice 29's criterion should say about 7,200 values for a two-hour match, not 12,600. Slice 28's mockup shows a cricket score; use `ARS 1-0 CHE  34:12`.
 

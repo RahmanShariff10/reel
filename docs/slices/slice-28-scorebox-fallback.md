@@ -22,7 +22,7 @@
 
 ## Mockup / reference
 ```
-Score box not found — highlights were picked from crowd audio and replays only.
+Score box not found — highlights were picked from crowd audio only.
 [ Mark the score box ]
 
  ┌──────────────── preview frame ────────────────┐

@@ -1,5 +1,7 @@
 # ADR-004 — The candidate moment is the unit of analysis (supersedes ADR-001)
 
+> **Amended by [ADR-007](ADR-007-no-replay-signal.md):** replay runs are not a source in the MVP, because the score graphic stays on during replays.
+
 ## Context
 Reel moved from cricket to football. Cricket has a repeating unit (the delivery) marked by a camera shot. Football is continuous, with no equivalent shot and no natural segmentation.
 

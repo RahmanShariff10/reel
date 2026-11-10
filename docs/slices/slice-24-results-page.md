@@ -13,7 +13,7 @@
   - Clicking an event that is in the reel seeks the reel to it.
   - Clicking an event that isn't in the reel switches the player to the full match at that moment.
 - **Summary cards:** final score, goals per half, moments found, processing time.
-- **Score box:** the detected score-box preview image, or a notice if it wasn't found ("Highlights were picked from crowd audio and replays only").
+- **Score box:** the detected score-box preview image, or a notice if it wasn't found ("Highlights were picked from crowd audio only").
 - **Downloads:** reel MP4, `events.json`, and each clip.
 
 ## Acceptance criteria
