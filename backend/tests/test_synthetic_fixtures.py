@@ -83,8 +83,8 @@ class TestGeneration:
         assert (tmp_path / "video.mp4").is_file()
         assert (tmp_path / "schedule.json").is_file()
 
-    def test_probe_matches_request(self, synthetic_match: SyntheticMatch) -> None:
-        info = _probe(synthetic_match.video)
+    def test_probe_matches_request(self, cricket_match: SyntheticMatch) -> None:
+        info = _probe(cricket_match.video)
         assert abs(float(info["format"]["duration"]) - 120.0) <= 0.1
         video = next(s for s in info["streams"] if s["codec_type"] == "video")
         assert (video["width"], video["height"]) == (1280, 720)
@@ -97,8 +97,8 @@ class TestGeneration:
 
 
 class TestSchedule:
-    def test_schedule_contents(self, synthetic_match: SyntheticMatch) -> None:
-        s = synthetic_match.schedule
+    def test_schedule_contents(self, cricket_match: SyntheticMatch) -> None:
+        s = cricket_match.schedule
         assert s["scorebox_rect"] and len(s["scorebox_rect"]) == 4
         assert len(s["cuts"]) == len(s["shots"]) - 1
         assert set(s["scenes"]) >= {"run_up", "field", "close_up", "crowd", "graphic"}
@@ -108,15 +108,15 @@ class TestSchedule:
         times = [c["time_s"] for c in s["score_changes"]]
         assert times == sorted(times)
 
-    def test_shots_cover_video_without_gaps(self, synthetic_match: SyntheticMatch) -> None:
-        shots = synthetic_match.schedule["shots"]
+    def test_shots_cover_video_without_gaps(self, cricket_match: SyntheticMatch) -> None:
+        shots = cricket_match.schedule["shots"]
         assert shots[0]["start_s"] == 0.0
-        assert shots[-1]["end_s"] == synthetic_match.schedule["duration_s"]
+        assert shots[-1]["end_s"] == cricket_match.schedule["duration_s"]
         for a, b in zip(shots, shots[1:]):
             assert a["end_s"] == b["start_s"]
 
-    def test_score_changes_never_in_hidden_intervals(self, synthetic_match) -> None:
-        s = synthetic_match.schedule
+    def test_score_changes_never_in_hidden_intervals(self, cricket_match) -> None:
+        s = cricket_match.schedule
         for ch in s["score_changes"]:
             assert not any(h0 <= ch["time_s"] < h1 for h0, h1 in s["hidden_intervals"])
 
@@ -127,23 +127,23 @@ class TestSchedule:
 
 
 class TestRendering:
-    def test_score_box_readable_by_ocr(self, synthetic_match: SyntheticMatch) -> None:
-        s = synthetic_match.schedule
+    def test_score_box_readable_by_ocr(self, cricket_match: SyntheticMatch) -> None:
+        s = cricket_match.schedule
         checked = 0
         for ch in s["score_changes"][1:6]:
             t = ch["time_s"] + 1.0
             expected = score_text_at(s, t)
             if expected is None:
                 continue
-            text = _ocr(_crop(_frame(synthetic_match.video, t), s["scorebox_rect"]))
+            text = _ocr(_crop(_frame(cricket_match.video, t), s["scorebox_rect"]))
             assert _norm(text) == _norm(expected), (t, text, expected)
             checked += 1
         assert checked >= 3
 
-    def test_score_box_hidden_during_replays(self, synthetic_match: SyntheticMatch) -> None:
-        s = synthetic_match.schedule
+    def test_score_box_hidden_during_replays(self, cricket_match: SyntheticMatch) -> None:
+        s = cricket_match.schedule
         h0, h1 = s["hidden_intervals"][0]
-        text = _ocr(_crop(_frame(synthetic_match.video, (h0 + h1) / 2), s["scorebox_rect"]))
+        text = _ocr(_crop(_frame(cricket_match.video, (h0 + h1) / 2), s["scorebox_rect"]))
         assert not re.search(r"\d+/\d+", text)
 
     def test_wickets_runs_order(self, short_variants) -> None:

@@ -56,9 +56,10 @@ def run_locate_scorebox(
     frame = grab_frame(video, preview_t, meta.width, meta.height)
     if frame is None:
         raise RuntimeError(f"Could not read a preview frame at {preview_t:.1f}s")
-    if result.found and result.box:
-        x, y, w, h = result.box
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 220, 0), 3)
+    for rect, colour in ((result.box, (0, 220, 0)), (result.clock_box, (0, 140, 255))):
+        if result.found and rect:
+            x, y, w, h = rect
+            cv2.rectangle(frame, (x, y), (x + w, y + h), colour, 2)
     if not cv2.imwrite(str(paths.scorebox_preview_jpg), frame):
         raise RuntimeError("Could not write scorebox_preview.jpg")
 
@@ -67,18 +68,20 @@ def run_locate_scorebox(
         Scorebox(
             found=result.found,
             box=list(result.box) if result.box else None,
+            clock_box=list(result.clock_box) if result.clock_box else None,
             confidence=result.confidence,
             sample_reading=result.sample_reading,
             sample_time_s=result.sample_time_s,
-            order=result.order,
             preview_url=f"/api/files/{ctx.job_id}/scorebox_preview.jpg",
         ),
     )
     log.info(
-        "Score box %s for job %s (%d samples read)",
-        f"found at {result.box}" if result.found else "not found",
+        "Score box %s for job %s (%d samples read, clock presence %.2f, linearity %.2f)",
+        f"found at {result.box}, clock at {result.clock_box}" if result.found else "not found",
         ctx.job_id,
         result.samples_read,
+        result.presence,
+        result.linearity,
     )
     if progress_cb:
         progress_cb(1.0)

@@ -69,8 +69,8 @@ Don't start until G1 has passed.
 
 | Step | Slice | Module | Depends on | Real footage? | Status |
 |---|---|---|---|---|---|
-| 10 | [39 clock-scorebox-locate](slices/slice-39-clock-scorebox-locate.md) (see fix B) | scoreboard | 36, 37, G1 | Final check only | `[ ]` |
-| 11 | [40 score-clock-read](slices/slice-40-score-clock-read.md) (see fix D) | scoreboard | 39 | Final check only | `[ ]` |
+| 10 | [39 clock-scorebox-locate](slices/slice-39-clock-scorebox-locate.md) (see fix B) | scoreboard | 36, 37, G1 | Final check only | `[x]` |
+| 11 | [40 score-clock-read](slices/slice-40-score-clock-read.md) (see fixes D and H) | scoreboard | 39 | Final check only | `[ ]` |
 | 12 | [41 goal-state](slices/slice-41-goal-state.md) | scoreboard | 40 | No | `[ ]` |
 | 13 | [43 excitement-football](slices/slice-43-excitement-football.md) | audio | G1 | Final check only | `[ ]` |
 | 14 | [44 moments](slices/slice-44-moments.md) | moments | 41, 42, 43 | No | `[ ]` |
@@ -147,3 +147,8 @@ These correct problems found by checking the slices against the code. They overr
 **F. Small corrections.** Slice 29's criterion should say about 7,200 values for a two-hour match, not 12,600. Slice 28's mockup shows a cricket score; use `ARS 1-0 CHE  34:12`.
 
 **G. Slice 45: give faster-whisper audio samples, not a file path.** With PyAV 19, faster-whisper 1.2 crashes when given a path (`open() got an unexpected keyword argument 'metadata_errors'`). Load the 16 kHz mono WAV with `soundfile` and pass the array, as `WhisperLanguageDetector` in `eval/check_assumptions.py` does.
+
+**H. Slice 40: zeros are often unreadable on real broadcasts.** On Marseille v PSG, OCR read the 0-0 graphic as `OO PARIS SG`, `0 O PARIS SG`, `O PARIS SG` or just `PARIS SG` (see the F2 sprint notes).
+- Parse scores with `find_goals` in `reel/scoreboard/parse.py`, which handles the letter-O forms and the separator cases.
+- A reading with only one number, or none, while the clock is visible is unreadable: neither a score nor `visible: false`. The goal state machine must skip it rather than treat it as a change.
+- Test with these real strings.

@@ -8,7 +8,8 @@ Builds a scripted fake match with ffmpeg and writes a ground-truth ``schedule.js
 - goals whose score updates a known lag after the goal;
 - replays with the graphic hidden, one overturned goal, and a half-time break with no
   graphic and a clock restart;
-- audio: background noise with bursts at known times, including one with no goal.
+- audio: background noise with bursts at known times, including one with no goal;
+- optionally no score graphic at all, or a static ``12:30`` caption elsewhere on screen.
 
 Usage::
 
@@ -35,7 +36,7 @@ FONT = Path(__file__).resolve().parents[2] / "assets" / "fonts" / "Inter-Bold.tt
 
 SCENE_COLOURS: dict[str, str] = {
     "wide": "0x2E7D32",
-    "medium": "0x558B2F",
+    "medium": "0xC0CA33",  # lime, so a wide-to-medium cut clears the cut detector
     "close_up": "0x8D6E63",
     "crowd": "0x5C6BC0",
     "graphic": "0x263238",
@@ -96,8 +97,14 @@ def build_schedule(
     style: str = "dash",
     second_half_clock_s: int = SECOND_HALF_CLOCK_S,
     seed: int = 42,
+    scorebox: bool = True,
+    distractor: bool = False,
 ) -> dict[str, Any]:
-    """Build the ground-truth schedule for a synthetic football match (no rendering)."""
+    """Build the ground-truth schedule for a synthetic football match (no rendering).
+
+    ``scorebox=False`` draws no score graphic. ``distractor=True`` adds a static ``12:30``
+    caption in the bottom-right corner for the whole video.
+    """
     if style not in STYLES:
         raise ValueError(f"Unknown graphic style: {style!r}")
     if duration_s < MIN_DURATION_S:
@@ -170,7 +177,7 @@ def build_schedule(
         if item["replay"]:
             r0, r1 = round(update + REPLAY_GAP_S, 2), round(update + REPLAY_GAP_S + REPLAY_S, 2)
             replays.append([r0, r1])
-            add_forced(half, r0, r1, "wide", replay=True)
+            add_forced(half, r0, r1, "close_up", replay=True)
         if item["overturn"]:
             removed = round(update + OVERTURN_DELAY_S, 2)
             goal["t_overturn_s"] = removed
@@ -203,6 +210,8 @@ def build_schedule(
     bw, bh = round(width * 0.36), round(height * 0.075)
     box = [round(width * 0.04), round(height * 0.05), bw, bh]
     clock_w = round(bw * 0.3)
+    dw, dh = round(width * 0.09), round(height * 0.06)
+    caption = [width - dw - round(width * 0.04), height - dh - round(height * 0.06), dw, dh]
     return {
         "duration_s": float(duration_s),
         "width": width,
@@ -212,8 +221,10 @@ def build_schedule(
         "style": style,
         "seed": seed,
         "teams": [HOME, AWAY],
-        "scorebox_rect": box,
-        "clock_rect": [box[0] + bw - clock_w, box[1], clock_w, bh],
+        "scorebox": scorebox,
+        "scorebox_rect": box if scorebox else None,
+        "clock_rect": [box[0] + bw - clock_w, box[1], clock_w, bh] if scorebox else None,
+        "distractor_rect": caption if distractor else None,
         "halves": [
             {"half": 1, "start_s": h1_start, "end_s": h1_end, "clock_start_s": FIRST_HALF_CLOCK_S},
             {"half": 2, "start_s": h2_start, "end_s": h2_end, "clock_start_s": second_half_clock_s},
@@ -224,7 +235,7 @@ def build_schedule(
         "goals": goals,
         "score_changes": changes,
         "replays": replays,
-        "hidden_intervals": hidden,
+        "hidden_intervals": hidden if scorebox else [[0.0, float(duration_s)]],
         "bursts": bursts if has_audio else [],
         "final_score": _text(style, home, away),
     }
@@ -286,6 +297,17 @@ def _video_filters(schedule: dict[str, Any], text_dir: Path) -> str:
         colour = SCENE_COLOURS[shot["scene"]]
         filters.append(f"drawbox=x=0:y=0:w={w}:h={h}:color={colour}:t=fill:enable='{en}'")
 
+    if schedule["distractor_rect"]:
+        dx, dy, dw, dh = schedule["distractor_rect"]
+        source = text_file("distractor.txt", "12:30")
+        filters.append(f"drawbox=x={dx}:y={dy}:w={dw}:h={dh}:color=0x101010:t=fill")
+        filters.append(
+            f"drawtext=fontfile='{font}':textfile='{source}':fontcolor=white"
+            f":fontsize={int(dh * 0.6)}:x={dx}+({dw}-tw)/2:y={dy}+({dh}-th)/2"
+        )
+    if not schedule["scorebox_rect"]:
+        return ",".join(filters)
+
     x, y, bw, bh = schedule["scorebox_rect"]
     cx, _, _, _ = schedule["clock_rect"]
     visible = "*".join(f"not({_between(h0, h1)})" for h0, h1 in schedule["hidden_intervals"])
@@ -330,6 +352,8 @@ def generate_football_video(
     style: str = "dash",
     second_half_clock_s: int = SECOND_HALF_CLOCK_S,
     seed: int = 42,
+    scorebox: bool = True,
+    distractor: bool = False,
 ) -> tuple[Path, Path]:
     """Render a synthetic football match and its schedule; returns (video, schedule)."""
     out_dir = Path(output_dir).resolve()
@@ -346,6 +370,8 @@ def generate_football_video(
         style=style,
         second_half_clock_s=second_half_clock_s,
         seed=seed,
+        scorebox=scorebox,
+        distractor=distractor,
     )
     cmd = [
         find_binary("ffmpeg"),
@@ -396,6 +422,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--second-half-clock", type=int, default=SECOND_HALF_CLOCK_S)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--no-audio", action="store_true")
+    parser.add_argument("--no-scorebox", action="store_true", help="draw no score graphic")
+    parser.add_argument("--distractor", action="store_true", help="add a static 12:30 caption")
     args = parser.parse_args(argv)
 
     video, schedule = generate_football_video(
@@ -405,6 +433,8 @@ def main(argv: list[str] | None = None) -> int:
         style=args.style,
         second_half_clock_s=args.second_half_clock,
         seed=args.seed,
+        scorebox=not args.no_scorebox,
+        distractor=args.distractor,
     )
     print(f"Generated synthetic football video: {video}")
     print(f"Generated schedule: {schedule}")

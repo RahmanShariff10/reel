@@ -169,6 +169,13 @@ class TestSchedule:
             assert a["end_s"] == b["start_s"]
             assert b["end_s"] > b["start_s"]
 
+    @pytest.mark.parametrize("duration", [150.0, 180.0, 600.0])
+    def test_every_cut_is_visible(self, duration: float) -> None:
+        # Scenes are flat colours, so a cut between two shots of one scene can't be seen.
+        s = build_schedule(duration_s=duration)
+        for a, b in zip(s["shots"], s["shots"][1:]):
+            assert a["scene"] != b["scene"], (a, b)
+
     def test_scenes_are_football_shot_labels(self) -> None:
         assert set(build_schedule()["scenes"]) == {"wide", "medium", "close_up", "crowd", "graphic"}
 
@@ -192,6 +199,14 @@ class TestSchedule:
             build_schedule(style="fancy")
         with pytest.raises(ValueError):
             build_schedule(duration_s=30.0)
+
+    def test_no_graphic_and_static_caption_options(self) -> None:
+        none = build_schedule(scorebox=False)
+        assert none["scorebox_rect"] is None and none["clock_rect"] is None
+        assert all(score_text_at(none, t) is None for t in range(0, 180, 5))
+        assert build_schedule()["distractor_rect"] is None
+        caption = build_schedule(distractor=True)["distractor_rect"]
+        assert caption and caption[0] > 640 and caption[1] > 360  # bottom right
 
 
 class TestRendering:
@@ -244,3 +259,15 @@ class TestRendering:
         after = _visible_time_after(schedule, goal["t_overturn_s"] + 1.0)
         assert "2-1" in _norm(_ocr_box(video, schedule, during))
         assert "1-1" in _norm(_ocr_box(video, schedule, after))
+
+    def test_static_caption_and_no_graphic(self, football_variants) -> None:
+        video, schedule = (football_variants["colon_caption"].video,
+                           football_variants["colon_caption"].schedule)
+        x, y, w, h = schedule["distractor_rect"]
+        for t in (20.5, 120.5):
+            result, _ = _OCR(_frame(video, t)[y : y + h, x : x + w])
+            assert result and _norm(result[0][1]) == "12:30", t
+
+        bare = football_variants["no_graphic"].video
+        result, _ = _OCR(_frame(bare, 60.5))
+        assert not any(re.search(r"\d\d:\d\d", r[1]) for r in result or [])
