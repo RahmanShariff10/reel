@@ -54,13 +54,15 @@ All of this can be done now, in this order.
 Slice 36 needs agreement from both developers before it is merged.
 
 ### Gate G1: real-footage go/no-go (human)
-Passed when the person with approved access has:
-- downloaded 5–8 games and their label files, and run `python -m eval.check_assumptions --manifest <file>` on 3–5 of them (the file needs only a `game` per entry; see the script's docstring);
-- reviewed `eval/reports/assumptions.md` and made the go/no-go call on the clock, replay and audio assumptions;
-- updated `docs/ARCHITECTURE.md` and the affected slices for any assumption that failed;
-- replaced `eval/manifests/matches.yaml` with real English-commentary games. **Its current contents are placeholders:** 7 of the 15 game names don't exist in SoccerNet and the `en` tags are unverified. Test games must come from SoccerNet's `test` split, and `test_manifest_matches_yaml_structure` must be updated if the counts change.
+**Status: not passed yet.** What's left is the team's decision on replays and the doc updates that follow it.
 
-Check on 30 November: if access still hasn't arrived, email soccernet.dataset@gmail.com and re-plan.
+- [x] Downloaded games and labels, and ran `python -m eval.check_assumptions` on 5 matches from 5 competitions (`eval/manifests/assumption_games.yaml`). Results are in [eval/reports/assumptions.md](../eval/reports/assumptions.md).
+- [ ] Go/no-go call on each assumption:
+  - **A1 clock holds.** Found on 5 of 5 matches, on screen 94–98% of the time and ticking correctly 96–100%.
+  - **A2 replays fails.** The score graphic stays on during replays: hidden in 2% of replay shots and 3% of live shots. A hidden box can't mark a replay, so the team must decide how slice 44 finds replays, or drop them as a moment source.
+  - **A3 audio holds for goals but is weak for other moments.** 11 of 14 goals had a peak within ±15 s (chance level 28%), but only 22 of 52 shots on target did, and peak rates ranged from 0.22 to 0.96 per minute between broadcasts. The check used the current excitement code. Slice 43's rolling crowd baseline should help, and slice 43 must re-measure this on the dev games.
+- [ ] Updated `docs/ARCHITECTURE.md` and the affected slices (43, 44, 46 and 26) for A2 and A3.
+- [x] Replaced `eval/manifests/matches.yaml` with 15 real English-commentary games: 5 dev games from SoccerNet's `train` split and 10 test games from its `test` split. Don't run the test games until config is frozen at G4.
 
 ## Phase 2: after footage
 Don't start until G1 has passed.
@@ -143,3 +145,5 @@ These correct problems found by checking the slices against the code. They overr
 **E. Slice 49 also removes** the names and keys kept under fix A, the cricket `make_synthetic.py` and `test_synthetic_fixtures.py`, and the `reel.deliveries` entry in `test_config.py` (replace it with `reel.moments`). Update the fixture path in `docs/ARCHITECTURE.md`. `eval/` is already clean by then.
 
 **F. Small corrections.** Slice 29's criterion should say about 7,200 values for a two-hour match, not 12,600. Slice 28's mockup shows a cricket score; use `ARS 1-0 CHE  34:12`.
+
+**G. Slice 45: give faster-whisper audio samples, not a file path.** With PyAV 19, faster-whisper 1.2 crashes when given a path (`open() got an unexpected keyword argument 'metadata_errors'`). Load the 16 kHz mono WAV with `soundfile` and pass the array, as `WhisperLanguageDetector` in `eval/check_assumptions.py` does.

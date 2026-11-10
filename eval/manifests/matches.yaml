@@ -1,52 +1,55 @@
-# SoccerNet match manifest for evaluation.
-# 5 dev games and 10 test games with English commentary.
-# Filled in after slice 38 (Gate G1).
+# SoccerNet match manifest for evaluation (gate G1).
+# 5 dev games from SoccerNet's train split and 10 test games from its test split.
+# All have English commentary: confirmed by the slice 38 check where marked, otherwise from
+# SoccerNet-Echoes (only non-English games have an English translation there) and a
+# spot check of the transcript text. Every game has at least one goal, camera labels and
+# 720p video. Tune on dev games only; don't run the test games until config is frozen (G4).
 matches:
   # 5 dev games (split: dev)
-  - game: england_epl/2014-2015/2015-02-21 - 18-00 Chelsea 1 - 1 Burnley
+  - game: italy_serie-a/2014-2015/2015-02-15 - 14-30 AC Milan 1 - 1 Empoli
+    split: dev
+    commentary_language: en  # confirmed by the slice 38 check
+  - game: spain_laliga/2014-2015/2015-02-22 - 23-00 Elche 0 - 2 Real Madrid
+    split: dev
+    commentary_language: en  # confirmed by the slice 38 check
+  - game: france_ligue-1/2014-2015/2015-04-05 - 22-00 Marseille 2 - 3 Paris SG
     split: dev
     commentary_language: en
   - game: england_epl/2014-2015/2015-02-21 - 18-00 Swansea 2 - 1 Manchester United
     split: dev
     commentary_language: en
-  - game: england_epl/2014-2015/2015-02-22 - 19-15 Southampton 0 - 2 Liverpool
-    split: dev
-    commentary_language: en
-  - game: england_epl/2014-2015/2015-03-01 - 15-05 Liverpool 2 - 1 Manchester City
-    split: dev
-    commentary_language: en
-  - game: england_epl/2014-2015/2015-03-04 - 22-45 West Ham 0 - 1 Chelsea
+  - game: europe_uefa-champions-league/2014-2015/2014-11-04 - 22-45 Arsenal 3 - 3 Anderlecht
     split: dev
     commentary_language: en
 
   # 10 test games (split: test)
-  - game: england_epl/2015-2016/2015-08-08 - 17-00 Chelsea 2 - 2 Swansea
-    split: test
-    commentary_language: en
-  - game: england_epl/2015-2016/2015-08-08 - 19-30 Everton 2 - 2 Watford
-    split: test
-    commentary_language: en
-  - game: england_epl/2015-2016/2015-08-09 - 15-30 Arsenal 0 - 2 West Ham
-    split: test
-    commentary_language: en
-  - game: england_epl/2015-2016/2015-08-16 - 18-00 Manchester City 3 - 0 Chelsea
-    split: test
-    commentary_language: en
-  - game: england_epl/2015-2016/2015-08-17 - 22-00 Liverpool 1 - 0 Bournemouth
-    split: test
-    commentary_language: en
   - game: england_epl/2015-2016/2015-08-23 - 15-30 West Brom 2 - 3 Chelsea
     split: test
     commentary_language: en
-  - game: england_epl/2015-2016/2015-08-24 - 22-00 Arsenal 0 - 0 Liverpool
+  - game: england_epl/2015-2016/2015-10-03 - 19-30 Chelsea 1 - 3 Southampton
     split: test
     commentary_language: en
-  - game: england_epl/2015-2016/2015-08-29 - 17-00 Chelsea 1 - 2 Crystal Palace
+  - game: england_epl/2015-2016/2015-11-07 - 20-30 Stoke City 1 - 0 Chelsea
     split: test
     commentary_language: en
-  - game: england_epl/2015-2016/2015-08-29 - 17-00 Manchester City 2 - 0 Watford
+  - game: europe_uefa-champions-league/2014-2015/2015-02-24 - 22-45 Manchester City 1 - 2 Barcelona
     split: test
     commentary_language: en
-  - game: england_epl/2015-2016/2015-08-30 - 18-00 Swansea 2 - 1 Manchester United
+  - game: europe_uefa-champions-league/2014-2015/2015-03-10 - 22-45 Real Madrid 3 - 4 Schalke
+    split: test
+    commentary_language: en
+  - game: europe_uefa-champions-league/2014-2015/2015-03-17 - 22-45 Monaco 0 - 2 Arsenal
+    split: test
+    commentary_language: en
+  - game: germany_bundesliga/2015-2016/2015-08-29 - 19-30 Bayern Munich 3 - 0 Bayer Leverkusen
+    split: test
+    commentary_language: en
+  - game: italy_serie-a/2014-2015/2015-04-29 - 21-45 Juventus 3 - 2 Fiorentina
+    split: test
+    commentary_language: en
+  - game: spain_laliga/2014-2015/2015-02-14 - 20-00 Real Madrid 2 - 0 Dep. La Coruna
+    split: test
+    commentary_language: en
+  - game: spain_laliga/2014-2015/2015-04-25 - 17-00 Espanyol 0 - 2 Barcelona
     split: test
     commentary_language: en
