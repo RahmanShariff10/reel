@@ -7,7 +7,7 @@
 
 ## What to build
 **E4 ablation runner** `uv run python -m eval.ablation --match <id>`:
-- runs these configurations in a fixed order: audio only → + camera shots and replays → + commentary → full (+ score reading);
+- runs these configurations in a fixed order: audio only → + camera shots → + commentary → full (+ score reading);
 - each variant copies the job folder and deletes outputs from the first affected stage onwards, so the expensive scan is reused;
 - computes E1, E2, E3 and E5 for each variant.
 

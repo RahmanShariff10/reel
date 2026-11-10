@@ -17,7 +17,7 @@
 - [x] Given synthetic inputs with known answers, then A1, A2 and A3 report them correctly.
 - [x] Given a run, then the report contains no images or copied broadcast text beyond team codes.
 - [x] Human: the script is run on real matches and the report is reviewed.
-- [ ] Human: where an assumption fails, ARCHITECTURE.md and the affected slices are updated before slice 39 starts.
+- [x] Human: where an assumption fails, ARCHITECTURE.md and the affected slices are updated before slice 39 starts.
 - [x] Human: `eval/manifests/matches.yaml` is filled in with English-commentary games.
 
 ## Out of scope for this slice

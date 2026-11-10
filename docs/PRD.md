@@ -26,7 +26,7 @@ Upload and wait. Nothing else is required.
   - each clip captioned with event, match minute and score, e.g. `GOAL · 67' · ARS 2-1 CHE`;
   - a title card with the teams and the final score.
 - **Browse key events:**
-  - a list of every detected event with its type (goal / penalty / red card / chance / yellow card / moment), match minute, score, confidence, and the reasons it was picked (e.g. "score +1, crowd excitement high, 2 replays, commentary: what a goal");
+  - a list of every detected event with its type (goal / penalty / red card / chance / yellow card / moment), match minute, score, confidence, and the reasons it was picked (e.g. "score +1, crowd excitement high, commentary: what a goal");
   - clicking an event jumps to that moment.
 - **Match summary:** final score, goals per half, the number of moments found, and processing time.
 - **Download outputs:** the reel (mp4), the event list (JSON), and individual clips.
@@ -71,7 +71,7 @@ Accuracy targets are measured on **10 held-out matches with English commentary**
 - **≥ 70%** of key actions (penalties, red cards, shots on target) appear among detected events in "all" mode.
 - **≥ 85%** of goal clips contain the actual goal, with at least 3 s before and after it.
 - **≥ 60%** of clips in the 5-minute reel contain a labelled key action, and this is clearly higher than for a reel of randomly picked clips of the same length.
-- An ablation (removing one signal at a time) shows each signal's contribution: audio only, then + camera shots and replays, then + commentary, then + score reading.
+- An ablation (removing one signal at a time) shows each signal's contribution: audio only, then + camera shots, then + commentary, then + score reading.
 - If footage rights allow it: in a viewer survey (10–15 people), our reel is rated clearly higher than a random reel of the same length.
 
 ## Timeline
