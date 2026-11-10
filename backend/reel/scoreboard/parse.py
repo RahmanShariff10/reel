@@ -1,9 +1,87 @@
-"""Parsing helpers for score-box text (e.g. ``IND 145/3  16.2``)."""
+"""Parsing helpers for score-graphic text.
+
+Football: ``find_clock`` and ``find_goals`` (e.g. ``ARS 1-0 CHE 67:05``).
+Cricket (``IND 145/3  16.2``): the rest, used by the cricket reader until slice 40 replaces it.
+"""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+
+# ---------------------------------------------------------------------------
+# Football
+# ---------------------------------------------------------------------------
+
+# Clock token: M:SS, MM:SS or MMM:SS with seconds < 60, optionally "+N" added minutes.
+# Seconds always have two digits, so a score such as "2:1" is never taken for a clock.
+_CLOCK_RE = re.compile(r"(?<![\d:.])(\d{1,3}):([0-5]\d)(?:\s*\+\s*(\d{1,2}))?(?![\d:])")
+# Goals separated by "-", ":" or "|". OCR often reads 0 as the letter O ("ARSO-O CHE").
+_GOALS_SEP_RE = re.compile(r"(?<![\d:.])([\dOo]{1,2})\s*[-:|]\s*([\dOo]{1,2})(?![\d:.])")
+# Goals separated by spaces only ("ARS 1 0 CHE"); digits only, as letters are too ambiguous.
+_GOALS_SPACE_RE = re.compile(r"(?<![\d:.])(\d{1,2})\s+(\d{1,2})(?![\d:.])")
+# OCR dropped the spaces ("ARS10CHE"), so two lone digits are one goal each.
+_GOALS_JOINED_RE = re.compile(r"(?<![\d:.])(\d)(\d)(?![\d:.])")
+# Zeros read as letters, as separate characters ("OM 0 O PARIS SG") or joined ("OM OO PARIS
+# SG", "OOPARIS SG"). The pair must not follow a letter, so "GOOD" or "ROONEY" never count.
+_GOALS_SPACE_O_RE = re.compile(r"(?<![A-Za-z\d:.])([\dOo])\s+([\dOo])(?![\d:.])")
+_GOALS_JOINED_O_RE = re.compile(r"(?<![A-Za-z\d:.])([\dOo])([\dOo])(?![\d:.])")
+_GOALS_PATTERNS = (
+    _GOALS_SEP_RE,
+    _GOALS_SPACE_RE,
+    _GOALS_JOINED_RE,
+    _GOALS_SPACE_O_RE,
+    _GOALS_JOINED_O_RE,
+)
+
+
+@dataclass(frozen=True)
+class ClockToken:
+    """A match clock found in text, with its character span in that text."""
+
+    seconds: int
+    added_min: int | None
+    start: int
+    end: int
+
+
+def find_clock(text: str) -> ClockToken | None:
+    """Return the first clock token in ``text`` (``67:05``, ``45:00+2``), if any."""
+    m = _CLOCK_RE.search(text)
+    if not m:
+        return None
+    added = int(m.group(3)) if m.group(3) else None
+    return ClockToken(int(m.group(1)) * 60 + int(m.group(2)), added, m.start(), m.end())
+
+
+def _goal_count(token: str) -> int:
+    return int(token.replace("O", "0").replace("o", "0"))
+
+
+def find_goals(text: str, max_goals: int = 15) -> tuple[int, int] | None:
+    """Return (home, away) goals from score text, ignoring any clock in it.
+
+    The strongest pattern present decides: a separated score that is out of range means no
+    score, rather than falling back to looser patterns (``16-0`` is not ``1-6``).
+    """
+    clock = find_clock(text)
+    if clock is not None:
+        text = f"{text[: clock.start]} {text[clock.end :]}"
+    for pattern in _GOALS_PATTERNS:
+        matches = list(pattern.finditer(text))
+        if not matches:
+            continue
+        for m in matches:
+            home, away = _goal_count(m.group(1)), _goal_count(m.group(2))
+            if home <= max_goals and away <= max_goals:
+                return home, away
+        return None
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Cricket (removed with the cricket reader in slice 40)
+# ---------------------------------------------------------------------------
 
 # runs/wickets or wickets/runs pair, separated by "/" or "-"
 _PAIR_RE = re.compile(r"(?<![\d.])(\d{1,3})\s*[/-]\s*(\d{1,3})(?![\d])")

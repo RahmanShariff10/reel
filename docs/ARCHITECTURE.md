@@ -60,9 +60,9 @@ The default 5-minute reel runs stages 1–10. Requesting another mode re-runs on
 ### Score-graphic detection (stage 2)
 - **The clock is the anchor.** A clock token is `M:SS`, `MM:SS` or `MMM:SS` with seconds < 60, optionally followed by `+N`.
 - A candidate position must show a clock token in **≥ 40%** of sampled frames.
-- **Linearity check:** for consecutive samples of a candidate, clock change ÷ video-time change must be within 0.9–1.1 in **≥ 70%** of pairs (half-time jumps are excluded by the rest of the pairs passing). This rejects static text and countdowns.
-- The **score** is the pair of integers (0–15) next to the clock, separated by `-`, `:`, `|` or nothing, between optional team codes. OCR may return these as one line or as separate items; both must parse.
-- `clock_box` is the OCR rectangle of the clock. When OCR merges clock and score into one item, `clock_box` is the sub-region whose pixels change on ≥ 80% of crops 1 s apart.
+- **Linearity check:** for consecutive samples of a candidate, the clock must move forward by 0.9–1.1× the video time, ±1 s because the clock shows whole seconds, in **≥ 70%** of pairs (half-time jumps are excluded by the rest of the pairs passing). This rejects static text and countdowns.
+- The **score** is the pair of integers (0–15) next to the clock, separated by `-`, `:`, `|` or nothing, between optional team codes. OCR may return these as one line or as separate items; both must parse. OCR often reads 0 as the letter O (`ARSO-O`, `OM OO PARIS SG`), which counts as 0 unless it follows a letter. "Next to" means on the clock's line within 8 text heights, or on the line just above or below it. A candidate needs a readable score beside it in ≥ 20% of the samples where its clock was read; this is low because some fonts' zeros are often unreadable (a real 0-0 half gave a readable score in under 40% of samples).
+- `clock_box` is the OCR rectangle of the clock. When OCR merges clock and score into one item, `clock_box` is the clock's share of that item, estimated from the clock's character position. Its right edge is set by the seconds digit: the pixels that change on ≥ 80% of frame pairs 1 s apart.
 - If no position qualifies, `found: false`; stages 4 and the goal part of 7 are skipped, and highlights use audio + video signals only. The result page shows a notice.
 
 ### Goal state machine (stage 4)

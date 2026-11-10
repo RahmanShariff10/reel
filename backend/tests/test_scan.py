@@ -28,7 +28,7 @@ from reel.ingest.stage import run_ingest
 from reel.jobs.pipeline import PipelineContext
 from reel.scoreboard.stage import run_locate_scorebox
 from tests.conftest import SyntheticMatch, make_synthetic_match
-from tests.fixtures.make_synthetic import SCENE_COLOURS
+from tests.fixtures.make_football import SCENE_COLOURS
 
 
 def prepare(video: Path, tmp: Path) -> PipelineContext:

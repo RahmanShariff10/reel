@@ -62,7 +62,7 @@ class TestSyntheticLoudness:
         exc = np.array(read_excitement_csv(ctx.paths.excitement_csv))
         bursts = synthetic_match.schedule["bursts"]
         inside = np.zeros(len(exc), bool)
-        for b0, b1 in bursts:
+        for b0, b1 in ((b["start_s"], b["end_s"]) for b in bursts):
             lo, hi = max(0, math.floor(b0) - 1), min(len(exc), math.ceil(b1) + 2)
             inside[lo:hi] = True
             peak = lo + int(np.argmax(exc[lo:hi]))
