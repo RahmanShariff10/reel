@@ -66,7 +66,9 @@ The default 5-minute reel runs stages 1–10. Requesting another mode re-runs on
 - If no position qualifies, `found: false`; stages 4 and the goal part of 7 are skipped, and highlights use audio + video signals only. The result page shows a notice.
 
 ### Goal state machine (stage 4)
-- **OCR skip:** a crop is OCR'd only if its pixels **outside `clock_box`** changed. The clock is OCR'd separately every `clock_read_s` (30 s) and interpolated between readings.
+- **OCR skip:** a crop is OCR'd only if its pixels **outside `clock_box`** changed, after a 5 px blur and ignoring the padding border, which shows live video; this keeps compression flicker from counting. OCR always sees the whole score box, never a crop of only the clock. A crop is also OCR'd every `clock_read_s` (30 s) to read the clock, which is interpolated between reads within one unbroken stretch of the graphic being visible, never across a gap such as half-time.
+- Change-triggered OCR runs at most every 2 s, because see-through graphics change all the time, and a hidden graphic leaves live video in the crop. A crop that matches the last visible crop again is read at once.
+- Crops are OCR'd 3× enlarged, with the detector's longest side capped. RapidOCR's default enlarges a 30 px crop about 24 times, which was slower and misread zeros on a real broadcast. A visible crop whose score can't be read is OCR'd again with the default setting, because the two fail on different broadcasts. If it's still unreadable, the reading is visible with `home`/`away` null, and the goal state machine skips it.
 - A new score is accepted only after it appears in **≥ 3 consecutive** readings.
 - Exactly one side rises by exactly 1 per change; anything else is rejected as an OCR error.
 - One side dropping by exactly 1 within 300 s of that side's goal → the goal is marked `overturned`.

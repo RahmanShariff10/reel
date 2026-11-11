@@ -70,8 +70,8 @@ Don't start until G1 has passed.
 | Step | Slice | Module | Depends on | Real footage? | Status |
 |---|---|---|---|---|---|
 | 10 | [39 clock-scorebox-locate](slices/slice-39-clock-scorebox-locate.md) (see fix B) | scoreboard | 36, 37, G1 | Final check only | `[x]` |
-| 11 | [40 score-clock-read](slices/slice-40-score-clock-read.md) (see fixes D and H) | scoreboard | 39 | Final check only | `[ ]` |
-| 12 | [41 goal-state](slices/slice-41-goal-state.md) | scoreboard | 40 | No | `[ ]` |
+| 11 | [40 score-clock-read](slices/slice-40-score-clock-read.md) (see fixes D and H) | scoreboard | 39 | Final check only | `[x]` |
+| 12 | [41 goal-state](slices/slice-41-goal-state.md) (see fix H) | scoreboard | 40 | No | `[ ]` |
 | 13 | [43 excitement-football](slices/slice-43-excitement-football.md) | audio | G1 | Final check only | `[ ]` |
 | 14 | [44 moments](slices/slice-44-moments.md) | moments | 41, 42, 43 | No | `[ ]` |
 | 15 | [45 commentary](slices/slice-45-commentary.md) | audio | 44 | Final check only | `[ ]` |
@@ -148,7 +148,7 @@ These correct problems found by checking the slices against the code. They overr
 
 **G. Slice 45: give faster-whisper audio samples, not a file path.** With PyAV 19, faster-whisper 1.2 crashes when given a path (`open() got an unexpected keyword argument 'metadata_errors'`). Load the 16 kHz mono WAV with `soundfile` and pass the array, as `WhisperLanguageDetector` in `eval/check_assumptions.py` does.
 
-**H. Slice 40: zeros are often unreadable on real broadcasts.** On Marseille v PSG, OCR read the 0-0 graphic as `OO PARIS SG`, `0 O PARIS SG`, `O PARIS SG` or just `PARIS SG` (see the F2 sprint notes).
-- Parse scores with `find_goals` in `reel/scoreboard/parse.py`, which handles the letter-O forms and the separator cases.
-- A reading with only one number, or none, while the clock is visible is unreadable: neither a score nor `visible: false`. The goal state machine must skip it rather than treat it as a change.
-- Test with these real strings.
+**H. Slices 40 and 41: real OCR is imperfect.** On Marseille v PSG, OCR read the 0-0 graphic as `OO PARIS SG`, `0 O PARIS SG`, `O PARIS SG` or just `PARIS SG` (see the F2 sprint notes).
+- Slice 40 (done): scores are parsed with `find_goals`, which handles the letter-O forms. A visible reading with no readable score has `home`/`away` null.
+- Slice 41 must skip unreadable readings rather than treat them as a change.
+- Slice 41 must not accept a new score just because it appears in 3 consecutive readings. A reading is copied to every following crop until the crop changes, so one OCR call can fill many readings. Misread scores also occur: 0.4–3.7% of readable readings on the dev matches, in runs of up to 19 crops (9.5 s), such as `7-0` for `1-0`. Accept a new score only once it has held for at least 20 s, and test with a 10 s misread.
