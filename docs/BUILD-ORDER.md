@@ -71,9 +71,9 @@ Don't start until G1 has passed.
 |---|---|---|---|---|---|
 | 10 | [39 clock-scorebox-locate](slices/slice-39-clock-scorebox-locate.md) (see fix B) | scoreboard | 36, 37, G1 | Final check only | `[x]` |
 | 11 | [40 score-clock-read](slices/slice-40-score-clock-read.md) (see fixes D and H) | scoreboard | 39 | Final check only | `[x]` |
-| 12 | [41 goal-state](slices/slice-41-goal-state.md) (see fix H) | scoreboard | 40 | No | `[ ]` |
+| 12 | [41 goal-state](slices/slice-41-goal-state.md) (see fix H) | scoreboard | 40 | No | `[x]` |
 | 13 | [43 excitement-football](slices/slice-43-excitement-football.md) | audio | G1 | Final check only | `[ ]` |
-| 14 | [44 moments](slices/slice-44-moments.md) | moments | 41, 42, 43 | No | `[ ]` |
+| 14 | [44 moments](slices/slice-44-moments.md) (see fix I) | moments | 41, 42, 43 | No | `[ ]` |
 | 15 | [45 commentary](slices/slice-45-commentary.md) | audio | 44 | Final check only | `[ ]` |
 | 16 | [46 football-rating](slices/slice-46-football-rating.md) | highlights | 44, 45 | No | `[ ]` |
 | 17 | [47 football-clips-selection](slices/slice-47-football-clips-selection.md) | highlights | 46 | No | `[ ]` |
@@ -151,4 +151,6 @@ These correct problems found by checking the slices against the code. They overr
 **H. Slices 40 and 41: real OCR is imperfect.** On Marseille v PSG, OCR read the 0-0 graphic as `OO PARIS SG`, `0 O PARIS SG`, `O PARIS SG` or just `PARIS SG` (see the F2 sprint notes).
 - Slice 40 (done): scores are parsed with `find_goals`, which handles the letter-O forms. A visible reading with no readable score has `home`/`away` null.
 - Slice 41 must skip unreadable readings rather than treat them as a change.
-- Slice 41 must not accept a new score just because it appears in 3 consecutive readings. A reading is copied to every following crop until the crop changes, so one OCR call can fill many readings. Misread scores also occur: 0.4–3.7% of readable readings on the dev matches, in runs of up to 19 crops (9.5 s), such as `7-0` for `1-0`. Accept a new score only once it has held for at least 20 s, and test with a 10 s misread.
+- Slice 41 (done): a reading is copied to every following crop until the crop changes, so one OCR call can fill many readings, and misreads occur in 0.4–3.7% of readable readings. A new score needs 2 separate OCR results (or 45 s with a frozen clock), not 3 consecutive readings: every goal-like misread on the dev matches was one OCR result.
+
+**I. Slice 44: the score graphic can update over a minute after a goal.** On Marseille v PSG it updated 62–85 s after the labelled goal; `goal_lookback_s` (90 s) only just covers that. Check the lag on the other dev matches, and widen the look-back if needed, before tuning anything else.

@@ -8,7 +8,7 @@ For a real match, the pipeline finds the score graphic, reads goals and halves, 
 ## Slices in this sprint
 - [x] `slice-39-clock-scorebox-locate` (Dev A)
 - [x] `slice-40-score-clock-read` (Dev A)
-- [ ] `slice-41-goal-state` (Dev A)
+- [x] `slice-41-goal-state` (Dev A)
 - [ ] `slice-42-football-shots` (Dev B)
 - [ ] `slice-43-excitement-football` (Dev B)
 
@@ -54,5 +54,22 @@ The first version needed 1,747–3,592 OCR calls and 13–25 minutes per half, w
 - Items on one line were grouped by pixel row, so a 1 px offset put `OEMP` before `MIL` and read 0-1. Lines are now grouped by vertical overlap.
 
 Marseille's graphic is see-through, so its crops keep changing and OCR runs at the 2-second cap. The longest run of one misread score was 19 crops (9.5 s), such as `7-0` for `1-0`; slice 41 must not accept a score that briefly.
+
+### Slice 41: goals and halves on the dev matches (11 November)
+The goal state machine on slice 40's readings: each half alone, and AC Milan v Empoli's halves joined into one match as `eval` prepares it. Goals were matched to SoccerNet's `Goal` labels on the same side within 3 minutes.
+
+| Readings | Goals labelled | Found | Score graphic updated after the label | False goals | Halves found |
+|---|---|---|---|---|---|
+| AC Milan v Empoli, 1st | 1 | 1 | 4 s | 0 | 1 |
+| AC Milan v Empoli, 2nd | 1 | 1 | 5 s | 0 | 1 |
+| AC Milan v Empoli, joined | 2 | 2 | 4 s, 5 s | 0 | 2, split at the join |
+| Marseille v PSG, 1st | 3 | 3 | 83 s, 62 s, 85 s | 0 | 1 |
+
+Each run took under 0.2 s.
+
+- Every misread that looked like a goal (0-0 read as 0-1 or 1-0, 16 of them) was one OCR result copied to 4–9 readings. "3 consecutive readings" would have accepted them all, so a new score now needs 2 separate OCR results.
+- The first version found 4 false halves: it compared each clock reading with the one before, so a misread clock just before the graphic hid made the next reading look like a jump. Readings are now compared with the half's clock line.
+- SoccerNet cuts each half at 45:00, so joined halves have no break and a continuous clock. They are split where the clock passes 45:00 and runs on.
+- Marseille's graphic updated over a minute after each goal. Slice 44 looks for the goal moment up to `goal_lookback_s` (90 s) before the update, which only just covers 85 s.
 
 ## Notes for next time
