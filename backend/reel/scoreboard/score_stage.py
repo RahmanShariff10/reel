@@ -31,7 +31,7 @@ def is_valid_read_score(ctx: PipelineContext) -> bool:
 
 
 def run_read_score(ctx: PipelineContext, progress_cb: ProgressCallback | None = None) -> None:
-    readings = read_job_crops(ctx, (lambda f: progress_cb(0.9 * f)) if progress_cb else None)
+    readings, _ = read_job_crops(ctx, (lambda f: progress_cb(0.9 * f)) if progress_cb else None)
     timeline, events = build_timeline(readings, ctx.config.scoreboard)
     write_model(ctx.paths.score_timeline_json, timeline)
     write_model(ctx.paths.score_events_json, events)

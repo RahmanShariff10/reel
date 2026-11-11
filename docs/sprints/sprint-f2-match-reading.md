@@ -7,7 +7,7 @@ For a real match, the pipeline finds the score graphic, reads goals and halves, 
 
 ## Slices in this sprint
 - [x] `slice-39-clock-scorebox-locate` (Dev A)
-- [ ] `slice-40-score-clock-read` (Dev A)
+- [x] `slice-40-score-clock-read` (Dev A)
 - [ ] `slice-41-goal-state` (Dev A)
 - [ ] `slice-42-football-shots` (Dev B)
 - [ ] `slice-43-excitement-football` (Dev B)
@@ -36,5 +36,23 @@ Sprint F1.
 - Layouts differ: Elche v Real Madrid shows the clock left of the score; the others show it on the right.
 - Marseille v PSG's first half was missed at first. Its font makes OCR read 0-0 as `OO`, `0 O`, a single `O` or nothing, so a readable score sat beside the clock in under 40% of samples. Fixed by reading the letter-O forms and requiring a score in only 20% of the clock's samples.
 - Preview images with the box (green) and clock box (orange) are in `data/soccernet/locate-check/` on the approved laptop, for a human to look at. They weren't viewed by any AI tool.
+
+### Slice 40: score and clock read on the dev matches (11 November)
+Stages 1–4 (up to `read_score`) on three 45-minute halves, each about 5,400 crops at 2 per second. Readings were checked against SoccerNet's labels: the score most often read 1–3 minutes after each labelled goal, every readable score away from goals, and the clock against the labelled game time.
+
+| Half | OCR calls | `read_score` time | Visible | Readable score when visible | Wrong score | Goals right | Clock within 5 s |
+|---|---|---|---|---|---|---|---|
+| AC Milan v Empoli, 1st | 402 (7% of crops) | 41 s | 99% | 98% | 0.4% | 1 of 1 | 99% |
+| AC Milan v Empoli, 2nd | 390 (7%) | 35 s | 99% | 99% | 1.2% | 1 of 1 | 97% |
+| Marseille v PSG, 1st | 1,232 (23%) | 160 s | 81% | 97% | 3.7% | 3 of 3 | 99% |
+
+Other stages on one half: ingest 2 s, `locate_scorebox` 43 s, scan 61 s.
+
+The first version needed 1,747–3,592 OCR calls and 13–25 minutes per half, with only 27% of Milan's first-half readings readable. Three causes, all fixed:
+- RapidOCR's default detector enlarges a 30 px crop about 24 times. That took ~0.4 s per call and misread zeros. Enlarging the crop 3 times with the detector's longest side capped read 173 of 180 sampled crops right, none wrong, at ~0.09 s. The default is now the fallback for unreadable crops.
+- Compression flicker around small text counted as a change. Crops are now blurred and the pixel threshold is 60 (was 40); the padding border, which shows live video, is ignored.
+- Items on one line were grouped by pixel row, so a 1 px offset put `OEMP` before `MIL` and read 0-1. Lines are now grouped by vertical overlap.
+
+Marseille's graphic is see-through, so its crops keep changing and OCR runs at the 2-second cap. The longest run of one misread score was 19 crops (9.5 s), such as `7-0` for `1-0`; slice 41 must not accept a score that briefly.
 
 ## Notes for next time

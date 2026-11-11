@@ -14,12 +14,12 @@
 - `parse_score` handles separators `-`, `:`, `|`, or none, and OCR returning one line or several items.
 
 ## Acceptance criteria
-- [ ] Given a synthetic ticking graphic with an unchanged score, then at most 1 OCR call is made per 30 s of video for the score, plus clock reads.
-- [ ] Given a score change, then the changed crop is OCR'd within one crop.
-- [ ] Given `ARS 1-0 CHE`, `ARS 1 0 CHE`, `RMA 0 | 0 BAR` and `MCI 2:1 LIV 67:05`, then home and away parse correctly.
-- [ ] Given OCR items `['ARS', '1-0', 'CHE', '34:14']`, then the reading is home 1, away 0, clock 34:14.
-- [ ] Given a hidden graphic, then the reading is `visible: false`.
-- [ ] Human: on a dev match, record the OCR call count and `read_score` time in the sprint notes.
+- [x] Given a synthetic ticking graphic with an unchanged score, then at most 1 OCR call is made per 30 s of video for the score, plus clock reads.
+- [x] Given a score change, then the changed crop is OCR'd within one crop.
+- [x] Given `ARS 1-0 CHE`, `ARS 1 0 CHE`, `RMA 0 | 0 BAR` and `MCI 2:1 LIV 67:05`, then home and away parse correctly.
+- [x] Given OCR items `['ARS', '1-0', 'CHE', '34:14']`, then the reading is home 1, away 0, clock 34:14.
+- [x] Given a hidden graphic, then the reading is `visible: false`.
+- [x] Human: on a dev match, record the OCR call count and `read_score` time in the sprint notes.
 
 ## Out of scope for this slice
 Goals and halves (slice 41).
